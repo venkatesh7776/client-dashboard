@@ -48,7 +48,11 @@ export function ClientSheet({
           key={client?.id ?? "new"}
           client={client}
           defaultStatus={defaultStatus}
-          onSaved={(r) => (r.becameWon && r.id ? setWon({ id: r.id, label: r.label ?? "This client", projectCode: r.projectCode }) : onClose())}
+          onSaved={(r) => {
+            announceDelivered(r);
+            if (r.becameWon && r.id && !r.delivered) setWon({ id: r.id, label: r.label ?? "This client", projectCode: r.projectCode });
+            else onClose();
+          }}
           onCancel={onClose}
         />
       )}

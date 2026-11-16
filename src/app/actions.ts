@@ -55,8 +55,9 @@ export async function saveClient(id: string | null, input: unknown): Promise<Act
     if (error) throw error;
     const becameWon = data.status === "Closed" && before?.status !== "Closed" && before?.status !== "Delivered";
     const project = becameWon ? await ensureWonProject(row.id, row.name) : null;
+    const delivered = await settleIfFullyPaid(row.id);
     refresh();
-    return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon, projectCode: project?.code };
+    return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon, projectCode: project?.code, delivered };
   } catch (e) {
     return fail(e);
   }
@@ -115,18 +116,20 @@ export async function deleteClient(id: string): Promise<ActionResult> {
 // ───────────────────────── Auto-delivery
 
 /**
- * When everything a Closed client owes has been received (payments ≥ total value of its
- * non-cancelled projects), mark the client Delivered and its open projects Completed.
+ * When everything a Closed client owes has been received, mark the client Delivered and its
+ * open projects Completed. "Owes" = total value of its non-cancelled projects, or — when no
+ * project has a value — the client's expected value.
  */
 async function settleIfFullyPaid(clientId: string): Promise<ActionResult["delivered"]> {
   const [{ data: c }, { data: projects }, { data: pays }] = await Promise.all([
-    db().from("clients").select("client_code, name, status").eq("id", clientId).single(),
+    db().from("clients").select("client_code, name, status, expected_value").eq("id", clientId).single(),
     db().from("projects").select("id, project_code, status, value").eq("client_id", clientId),
     db().from("payments").select("amount").eq("client_id", clientId),
   ]);
   if (!c || c.status !== "Closed") return undefined;
   const active = (projects ?? []).filter((p) => p.status !== "Cancelled");
-  const target = active.reduce((s, p) => s + Number(p.value ?? 0), 0);
+  const projectTotal = active.reduce((s, p) => s + Number(p.value ?? 0), 0);
+  const target = projectTotal > 0 ? projectTotal : Number(c.expected_value ?? 0);
   if (target <= 0) return undefined;
   const received = (pays ?? []).reduce((s, p) => s + Number(p.amount), 0);
   if (received + 0.005 < target) return undefined;
