@@ -12,7 +12,7 @@ import {
   UsersThree,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
-import Image from "next/image";
+import { Brand } from "@/components/brand";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -30,20 +30,6 @@ const NAV: { href: string; label: string; icon: PhosphorIcon }[] = [
 function useActive() {
   const path = usePathname();
   return (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
-}
-
-/** Full TrackMate wordmark; inverted in dark mode so the dark artwork stays visible. */
-function Logo({ height = 31 }: { height?: number }) {
-  return (
-    <Image
-      src="/trackmate-logo.png"
-      alt="TrackMate"
-      width={Math.round((559 / 120) * height)}
-      height={height}
-      priority
-      className="select-none dark:invert"
-    />
-  );
 }
 
 function ThemeToggle({ compact }: { compact?: boolean }) {
@@ -104,11 +90,7 @@ export function Sidebar() {
       </button>
 
       <Link href="/" aria-label="TrackMate home" className={cn("mb-6 flex h-9 items-center", collapsed ? "justify-center" : "px-2")}>
-        {collapsed ? (
-          <Image src="/trackmate-mark.png" alt="TrackMate" width={32} height={32} priority className="rounded-[7px]" />
-        ) : (
-          <Logo />
-        )}
+        <Brand size={30} showName={!collapsed} />
       </Link>
 
       <nav className="flex flex-col gap-0.5">
@@ -166,7 +148,7 @@ export function MobileTopBar() {
   return (
     <div className="flex h-12 items-center justify-between border-b border-line px-4 md:hidden">
       <Link href="/" aria-label="TrackMate home">
-        <Logo height={24} />
+        <Brand size={26} />
       </Link>
       <ThemeToggle compact />
     </div>
