@@ -112,8 +112,8 @@ export async function getPayments(f: { q?: string; client?: string; month?: stri
 
 export async function getPaymentsBetween(from: string, to: string) {
   return check(
-    await db().from("payments").select("amount").gte("payment_date", from).lte("payment_date", to),
-  ) as { amount: number }[];
+    await db().from("payments").select("amount, payment_date").gte("payment_date", from).lte("payment_date", to).limit(50000),
+  ) as { amount: number; payment_date: string }[];
 }
 
 export async function getMonthlyIncome(year?: number): Promise<MonthRow[]> {

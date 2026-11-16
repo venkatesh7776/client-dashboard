@@ -12,15 +12,14 @@ import {
   getBoardTodos,
   getFollowUps,
   getIncomeYears,
-  getLast12Months,
   getMonthlyIncome,
   getPaymentsBetween,
   getPipelineCounts,
   getProjectsByTag,
 } from "@/lib/data";
-import { fmtDate, monthStart, todayIST } from "@/lib/dates";
+import { fmtDate, monthLabel, todayIST } from "@/lib/dates";
 import { cn, inr } from "@/lib/format";
-import { rangeOptions, resolveRange } from "@/lib/ranges";
+import { bucketPayments, currentBucketKey, rangeOptions, resolveRange } from "@/lib/ranges";
 import { cardFor } from "@/lib/todos";
 import type { Project } from "@/lib/types";
 
@@ -31,12 +30,10 @@ const WEEKDAY = new Intl.DateTimeFormat("en-IN", { weekday: "long", timeZone: "A
 export default async function Home({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const today = todayIST();
-  const thisMonth = monthStart(today);
   const year = Number(sp.year) || Number(today.slice(0, 4));
   const range = resolveRange(sp.income, today);
 
-  const [chart, months, years, inRange, inPrev, pipeline, timeline, todos, followUps] = await Promise.all([
-    getLast12Months(today),
+  const [months, years, inRange, inPrev, pipeline, timeline, todos, followUps] = await Promise.all([
     getMonthlyIncome(year),
     getIncomeYears(),
     getPaymentsBetween(range.from, range.to),
@@ -48,6 +45,13 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
   ]);
 
   const total = inRange.reduce((s, p) => s + Number(p.amount), 0);
+  const yearTotal = months.reduce((s, m) => s + m.total, 0);
+  const monthsElapsed = year === Number(today.slice(0, 4)) ? Number(today.slice(5, 7)) : 12;
+  const best = months.reduce((a, m) => (m.total > a.total ? m : a), { month: `${year}-01-01`, total: 0, count: 0 });
+  const chart = bucketPayments(range, inRange);
+  const current = currentBucketKey(range, chart, today);
+  const bucketWord = { day: "Daily", week: "Weekly", month: "Monthly" }[range.bucket];
+  const currentWord = { day: "Today", week: "This week", month: "This month" }[range.bucket];
   const prevTotal = inPrev.reduce((s, p) => s + Number(p.amount), 0);
   const delta = total - prevTotal;
   const pct = prevTotal > 0 ? Math.round((delta / prevTotal) * 100) : null;
@@ -91,19 +95,36 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
             </div>
           </div>
           <div className="mt-4 border-t border-line px-2 pt-2">
-            <div className="flex items-center justify-between px-3 pt-1 text-[12px] text-muted">
-              <span>Last 12 months</span>
-              <span className="inline-flex items-center gap-3">
-                <Legend color="var(--chart-1)" label="Past months" />
-                <Legend color="var(--chart-2)" label="This month" />
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 pt-1 text-[12px] text-muted">
+              <span>
+                {bucketWord} · {range.label}
               </span>
+              {current && (
+                <span className="inline-flex items-center gap-3">
+                  <Legend color="var(--chart-1)" label="Earlier" />
+                  <Legend color="var(--chart-2)" label={currentWord} />
+                </span>
+              )}
             </div>
-            <IncomeChart data={chart} current={thisMonth} />
+            <IncomeChart data={chart} current={current} />
           </div>
         </Panel>
 
         <Panel title="Monthly income" action={<YearSelect year={year} years={years} />}>
           <MonthlyIncomeList rows={months} year={year} compact />
+          {months.length > 0 && (
+            <div className="mx-5 mt-auto grid grid-cols-2 gap-4 border-t border-line pt-4">
+              <div>
+                <div className="text-[12px] text-muted">Avg. per month</div>
+                <div className="tabular mt-0.5 text-[17px] font-semibold">{inr(Math.round(yearTotal / monthsElapsed))}</div>
+              </div>
+              <div>
+                <div className="text-[12px] text-muted">Best month</div>
+                <div className="tabular mt-0.5 text-[17px] font-semibold">{inr(best.total)}</div>
+                <div className="text-[12px] text-muted">{monthLabel(best.month)}</div>
+              </div>
+            </div>
+          )}
         </Panel>
 
         {/* Pipeline strip */}

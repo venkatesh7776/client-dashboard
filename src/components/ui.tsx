@@ -210,7 +210,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("flex min-w-0 flex-col rounded-[10px] border border-line bg-bg", className)}>
+    <section className={cn("flex min-w-0 flex-col rounded-xl border border-line bg-bg shadow-[var(--card-shadow)]", className)}>
       <div className="flex h-12 shrink-0 items-center justify-between gap-2 px-5">
         <h2 className="flex items-center gap-2 text-[14px] font-semibold">
           {title}
@@ -218,7 +218,7 @@ export function Panel({
         </h2>
         {action}
       </div>
-      <div className="flex-1 pb-3">{children}</div>
+      <div className="flex flex-1 flex-col pb-3">{children}</div>
     </section>
   );
 }

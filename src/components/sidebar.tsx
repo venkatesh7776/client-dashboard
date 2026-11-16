@@ -1,18 +1,30 @@
 "use client";
 
-import { CheckSquare, ChevronLeft, ChevronRight, FolderKanban, Home, IndianRupee, Moon, Sun, Users } from "lucide-react";
+import {
+  CaretLeft,
+  CaretRight,
+  CheckSquareOffset,
+  CurrencyInr,
+  House,
+  Kanban,
+  Moon,
+  Sun,
+  UsersThree,
+  type Icon as PhosphorIcon,
+} from "@phosphor-icons/react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/format";
 
-const NAV = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/payments", label: "Payments", icon: IndianRupee },
-  { href: "/todos", label: "To-dos", icon: CheckSquare },
+const NAV: { href: string; label: string; icon: PhosphorIcon }[] = [
+  { href: "/", label: "Home", icon: House },
+  { href: "/clients", label: "Clients", icon: UsersThree },
+  { href: "/projects", label: "Projects", icon: Kanban },
+  { href: "/payments", label: "Payments", icon: CurrencyInr },
+  { href: "/todos", label: "To-dos", icon: CheckSquareOffset },
 ];
 
 function useActive() {
@@ -20,22 +32,37 @@ function useActive() {
   return (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 }
 
+/** Full TrackMate wordmark; inverted in dark mode so the dark artwork stays visible. */
+function Logo({ height = 31 }: { height?: number }) {
+  return (
+    <Image
+      src="/trackmate-logo.png"
+      alt="TrackMate"
+      width={Math.round((559 / 120) * height)}
+      height={height}
+      priority
+      className="select-none dark:invert"
+    />
+  );
+}
+
 function ThemeToggle({ compact }: { compact?: boolean }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const dark = mounted && resolvedTheme === "dark";
+  const I = dark ? Sun : Moon;
   return (
     <button
       onClick={() => setTheme(dark ? "light" : "dark")}
       title={dark ? "Light mode" : "Dark mode"}
       aria-label={dark ? "Light mode" : "Dark mode"}
       className={cn(
-        "flex h-7 items-center gap-2 rounded-[5px] text-[14px] text-[var(--side-fg)] hover:bg-hover hover:text-fg",
-        compact ? "w-8 justify-center" : "w-full px-2",
+        "flex h-9 items-center gap-3 rounded-lg text-[15px] text-[var(--side-fg)] transition-colors hover:bg-hover hover:text-fg",
+        compact ? "w-9 justify-center" : "w-full px-3",
       )}
     >
-      {dark ? <Sun size={16} strokeWidth={1.6} className="text-faint" /> : <Moon size={16} strokeWidth={1.6} className="text-faint" />}
+      <I size={20} weight="regular" className="shrink-0" />
       {!compact && (dark ? "Light mode" : "Dark mode")}
     </button>
   );
@@ -62,8 +89,8 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "group/side sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-line bg-soft pt-3 pb-2 transition-[width] duration-150 md:flex",
-        collapsed ? "w-[52px] items-center px-2" : "w-[232px] px-2",
+        "sticky top-0 z-30 hidden h-dvh shrink-0 flex-col border-r border-line bg-soft pt-4 pb-3 transition-[width] duration-150 md:flex",
+        collapsed ? "w-[64px] items-center px-2" : "w-[248px] px-3",
       )}
     >
       {/* edge handle: small circle with an arrow, centred on the right edge */}
@@ -71,35 +98,40 @@ export function Sidebar() {
         onClick={toggle}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="absolute top-1/2 -right-[11px] z-20 grid size-[22px] -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-bg text-muted shadow-[0_1px_3px_rgba(15,15,15,0.08)] transition-colors hover:text-fg"
+        className="absolute top-1/2 -right-3 z-20 grid size-6 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-bg text-muted shadow-[0_1px_3px_rgba(15,15,15,0.1)] transition-colors hover:text-fg"
       >
-        {collapsed ? <ChevronRight size={13} strokeWidth={2} /> : <ChevronLeft size={13} strokeWidth={2} />}
+        {collapsed ? <CaretRight size={12} weight="bold" /> : <CaretLeft size={12} weight="bold" />}
       </button>
 
-      <div className={cn("mb-3 flex h-7 items-center", collapsed ? "justify-center" : "px-2")}>
+      <Link href="/" aria-label="TrackMate home" className={cn("mb-6 flex h-9 items-center", collapsed ? "justify-center" : "px-2")}>
         {collapsed ? (
-          <span className="text-[13px] font-semibold tracking-tight text-fg">CD</span>
+          <Image src="/trackmate-mark.png" alt="TrackMate" width={32} height={32} priority className="rounded-[7px]" />
         ) : (
-          <span className="text-[14px] font-semibold tracking-[-0.01em] text-fg">Client Desk</span>
+          <Logo />
         )}
-      </div>
-      <nav className="flex flex-col gap-[1px]">
-        {NAV.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            title={collapsed ? label : undefined}
-            aria-label={label}
-            className={cn(
-              "flex h-7 items-center gap-2 rounded-[5px] text-[14px] transition-colors",
-              collapsed ? "w-8 justify-center" : "px-2",
-              isActive(href) ? "bg-active font-medium text-fg" : "text-[var(--side-fg)] hover:bg-hover hover:text-fg",
-            )}
-          >
-            <Icon size={16} strokeWidth={1.6} className={cn("shrink-0", isActive(href) ? "text-fg" : "text-faint")} />
-            {!collapsed && label}
-          </Link>
-        ))}
+      </Link>
+
+      <nav className="flex flex-col gap-0.5">
+        {NAV.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              title={collapsed ? label : undefined}
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex h-9 items-center gap-3 rounded-lg text-[15px] transition-colors",
+                collapsed ? "w-10 justify-center" : "px-3",
+                active ? "bg-active font-medium text-fg" : "text-[var(--side-fg)] hover:bg-hover hover:text-fg",
+              )}
+            >
+              <Icon size={20} weight={active ? "fill" : "regular"} className="shrink-0" />
+              {!collapsed && label}
+            </Link>
+          );
+        })}
       </nav>
       <div className={cn("mt-auto", !collapsed && "w-full")}>
         <ThemeToggle compact={collapsed} />
@@ -112,19 +144,20 @@ export function BottomBar() {
   const isActive = useActive();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-      {NAV.map(({ href, label, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "flex flex-col items-center gap-0.5 py-2 text-[11px]",
-            isActive(href) ? "text-fg" : "text-faint",
-          )}
-        >
-          <Icon size={19} strokeWidth={isActive(href) ? 2.2 : 1.8} />
-          {label}
-        </Link>
-      ))}
+      {NAV.map(({ href, label, icon: Icon }) => {
+        const active = isActive(href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px]", active ? "text-fg" : "text-faint")}
+          >
+            <Icon size={22} weight={active ? "fill" : "regular"} />
+            {label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -132,7 +165,9 @@ export function BottomBar() {
 export function MobileTopBar() {
   return (
     <div className="flex h-12 items-center justify-between border-b border-line px-4 md:hidden">
-      <span className="text-[14px] font-semibold tracking-[-0.01em]">Client Desk</span>
+      <Link href="/" aria-label="TrackMate home">
+        <Logo height={24} />
+      </Link>
       <ThemeToggle compact />
     </div>
   );
