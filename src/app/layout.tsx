@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
+import { AgentPanel } from "@/components/agent/agent-panel";
 import { BottomBar, MobileTopBar, Sidebar } from "@/components/sidebar";
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </div>
           </div>
           <BottomBar />
+          <AgentPanel />
         </ThemeProvider>
       </body>
     </html>
