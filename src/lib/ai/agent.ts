@@ -142,6 +142,15 @@ const tools = {
         .describe("Payments already received from this client"),
     }),
     execute: async ({ project, payments, ...input }) => {
+      // Don't create duplicates when the user re-sends a list.
+      const { data: existing } = await db().from("clients").select("client_code, name").ilike("name", input.name.trim()).limit(1);
+      if (existing?.length) {
+        return {
+          ok: false as const,
+          kind: "write" as const,
+          error: `${existing[0].client_code} · ${existing[0].name} already exists — skipped. Use updateClient / updateProject / recordPayment to change it.`,
+        };
+      }
       const wanted = input.status ?? "Lead";
       const hasProject = wanted === "Closed" || wanted === "Delivered";
       // Create as Closed first so the project is auto-created; Delivered is applied at the end.
