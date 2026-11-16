@@ -105,7 +105,8 @@ const tools = {
   }),
 
   addClient: tool({
-    description: "Create a new lead or client. Status defaults to Lead.",
+    description:
+      "Create a new lead or client — and, in the same call, everything else you know about it: its project (name, dates, value, description) and any payments already received. Use ONE call per client. When the user lists several clients, call this tool for all of them in parallel in a single step. Status defaults to Lead; use Closed for a won deal and Delivered when the work is done.",
     inputSchema: z.object({
       name: z.string(),
       status: z.enum(CLIENT_STATUSES).optional(),
@@ -116,12 +117,83 @@ const tools = {
       expected_value: z.number().optional().describe("Rupees"),
       follow_up_date: isoDate.optional(),
       notes: z.string().optional(),
+      project: z
+        .object({
+          name: z.string().optional().describe("Defaults to the client name"),
+          start_date: isoDate.optional(),
+          deadline: isoDate.optional(),
+          value: z.number().optional().describe("Rupees"),
+          priority: z.enum(PRIORITIES).optional(),
+          status: z.enum(PROJECT_STATUSES).optional(),
+          description: z.string().optional(),
+        })
+        .optional()
+        .describe("Only for Closed/Delivered clients — fills in the project that is created automatically"),
+      payments: z
+        .array(
+          z.object({
+            amount: z.number().positive().describe("Rupees"),
+            payment_date: isoDate.optional().describe("Defaults to today"),
+            mode: z.enum(PAYMENT_MODES).optional(),
+            notes: z.string().optional(),
+          }),
+        )
+        .optional()
+        .describe("Payments already received from this client"),
     }),
-    execute: async (input) => {
-      const r = await saveClient(null, { status: "Lead", ...input });
-      if (!r.ok) return fail(r);
-      const status = input.status ?? "Lead";
-      return done(`Added ${r.label} as ${status}${r.projectCode ? ` · project ${r.projectCode} created (no dates yet)` : ""}`, r.projectCode ? `/projects/${r.projectCode}` : `/clients/${r.code}`);
+    execute: async ({ project, payments, ...input }) => {
+      const wanted = input.status ?? "Lead";
+      const hasProject = wanted === "Closed" || wanted === "Delivered";
+      // Create as Closed first so the project is auto-created; Delivered is applied at the end.
+      const r = await saveClient(null, { ...input, status: wanted === "Delivered" ? "Closed" : wanted });
+      if (!r.ok || !r.id) return fail(r);
+      const notes: string[] = [];
+
+      const projectCode = r.projectCode;
+      if (hasProject && project && projectCode) {
+        const { data: cur } = await db().from("projects").select("*").eq("project_code", projectCode).single();
+        const s = await saveProject(cur.id, {
+          ...cur,
+          name: project.name ?? cur.name,
+          start_date: project.start_date ?? cur.start_date,
+          deadline: project.deadline ?? cur.deadline,
+          value: project.value ?? cur.value,
+          priority: project.priority ?? cur.priority,
+          status: project.status ?? cur.status,
+          notes: project.description ?? cur.notes,
+        });
+        if (!s.ok) notes.push(`project details not saved: ${fail(s).error}`);
+      } else if (project && !hasProject) {
+        notes.push("project skipped — the client isn't Closed");
+      }
+
+      let paid = 0;
+      let delivered = false;
+      for (const p of payments ?? []) {
+        const s = await savePayment(null, {
+          client_id: r.id,
+          amount: Math.round(p.amount * 100) / 100,
+          payment_date: p.payment_date ?? todayIST(),
+          mode: p.mode,
+          notes: p.notes,
+        });
+        if (s.ok) {
+          paid += p.amount;
+          if (s.delivered) delivered = true;
+        } else notes.push(`payment ${inr(p.amount)} not saved: ${fail(s).error}`);
+      }
+
+      if (wanted === "Delivered" && !delivered) {
+        await setClientStatus(r.id, "Delivered");
+        if (projectCode) await db().from("projects").update({ status: "Completed" }).eq("project_code", projectCode).neq("status", "Cancelled");
+        delivered = true;
+      }
+
+      const parts = [`Added ${r.label} as ${delivered ? "Delivered" : wanted}`];
+      if (projectCode) parts.push(`project ${projectCode}${project?.value ? ` ${inr(project.value)}` : ""}`);
+      if (paid > 0) parts.push(`${payments!.length} payment${payments!.length === 1 ? "" : "s"} ${inr(paid)}`);
+      const summary = parts.join(" · ") + (notes.length ? ` (${notes.join("; ")})` : "");
+      return { ok: true as const, kind: "write" as const, summary, link: `/clients/${r.code}` };
     },
   }),
 
@@ -417,7 +489,9 @@ Today is ${weekday}, ${today} (Asia/Kolkata). Tomorrow is ${addDays(today, 1)}. 
 
 How to work:
 - When the request is clear, act immediately with the tools. Don't ask for confirmation of simple adds or updates.
-- Several things in one message? Do all of them.
+- Several things in one message? Do all of them, in as few steps as possible: call independent tools in parallel in the same step (e.g. one addClient per client, all at once).
+- For a new client, pass everything you know (project name, dates, value, description, payments received) to addClient in that single call — don't follow up with separate updateProject/recordPayment calls for the same client.
+- Never stop half-way through a list. If something fails, finish the rest, then report exactly what failed.
 - Refer to clients by name or Client ID; the tools resolve them. If a tool says several match or none match, ask a short question.
 - Never invent IDs or numbers. Only report what tools returned.
 - Money is Indian Rupees. "20k" = 20000, "1.5 lakh" = 150000, "2 cr" = 20000000. Write amounts like ₹1,20,000.
@@ -436,7 +510,12 @@ export function createDashboardAgent() {
     model: vertex()(AGENT_MODEL),
     instructions: instructions(),
     tools,
-    stopWhen: isStepCount(12),
+    stopWhen: isStepCount(40),
+    // Data-entry work doesn't need deep reasoning; low thinking keeps each step fast.
+    providerOptions: {
+      vertex: { thinkingConfig: { thinkingLevel: "low" } },
+      googleVertex: { thinkingConfig: { thinkingLevel: "low" } },
+    },
   });
 }
 
