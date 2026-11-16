@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ensureStartTodos } from "@/lib/auto-todos";
+import { todayIST } from "@/lib/dates";
 import { db } from "@/lib/supabase";
 import { clientSchema, paymentSchema, parseForm, projectSchema, todoSchema, type FieldErrors } from "@/lib/schemas";
 import { CLIENT_STATUSES, PROJECT_CLIENT_STATUSES, PROJECT_STATUSES } from "@/lib/constants";
@@ -161,6 +163,7 @@ export async function saveProject(id: string | null, input: unknown): Promise<Ac
       : db().from("projects").insert(parsed.data);
     const { data: row, error } = await q.select("id, project_code").single();
     if (error) throw error;
+    if (parsed.data.start_date === todayIST()) await ensureStartTodos(todayIST(), row.id);
     const delivered = await settleIfFullyPaid(parsed.data.client_id);
     refresh();
     return { ok: true, id: row.id, code: row.project_code, delivered };

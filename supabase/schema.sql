@@ -190,3 +190,14 @@ drop trigger if exists agent_chats_updated_at on agent_chats;
 create trigger agent_chats_updated_at before update on agent_chats for each row execute function set_updated_at();
 alter table agent_chats enable row level security;
 revoke all on agent_chats from anon, authenticated;
+
+-- ───────────────────────── v5 (16 Nov 2026): automatic to-dos (e.g. "Start <project>" on its start date)
+alter table todos add column if not exists auto_key text;
+drop index if exists todos_auto_key_idx;
+-- every automatic to-do key ever issued; a key is used once, so deleting the to-do doesn't bring it back
+create table if not exists auto_todo_keys (
+  key text primary key,
+  created_at timestamptz not null default now()
+);
+alter table auto_todo_keys enable row level security;
+revoke all on auto_todo_keys from anon, authenticated;

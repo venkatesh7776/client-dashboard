@@ -21,6 +21,7 @@ import { fmtDate, monthLabel, todayIST } from "@/lib/dates";
 import { cn, inr } from "@/lib/format";
 import { bucketPayments, currentBucketKey, rangeOptions, resolveRange } from "@/lib/ranges";
 import { cardFor } from "@/lib/todos";
+import { ensureStartTodos } from "@/lib/auto-todos";
 import type { Project } from "@/lib/types";
 
 type SP = Promise<Record<string, string | undefined>>;
@@ -32,6 +33,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
   const today = todayIST();
   const year = Number(sp.year) || Number(today.slice(0, 4));
   const range = resolveRange(sp.income, today);
+  await ensureStartTodos(today);
 
   const [months, years, inRange, inPrev, pipeline, timeline, todos, followUps] = await Promise.all([
     getMonthlyIncome(year),
