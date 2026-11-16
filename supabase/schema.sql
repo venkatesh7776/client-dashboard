@@ -175,3 +175,18 @@ alter table clients drop constraint if exists clients_status_check;
 update clients set status = 'Closed' where status = 'Won';
 alter table clients add constraint clients_status_check
   check (status in ('Lead','Contacted','Proposal Sent','Closed','Delivered','Lost'));
+
+-- ───────────────────────── v4 (16 Nov 2026): saved agent chats
+create table if not exists agent_chats (
+  id uuid primary key,
+  title text not null default 'New chat',
+  messages jsonb not null default '[]'::jsonb,
+  status text not null default 'idle' check (status in ('idle','running','error')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists agent_chats_updated_idx on agent_chats(updated_at desc);
+drop trigger if exists agent_chats_updated_at on agent_chats;
+create trigger agent_chats_updated_at before update on agent_chats for each row execute function set_updated_at();
+alter table agent_chats enable row level security;
+revoke all on agent_chats from anon, authenticated;

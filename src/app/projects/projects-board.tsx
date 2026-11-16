@@ -24,7 +24,7 @@ import type { Project } from "@/lib/types";
 
 const CLOSED = ["Completed", "Cancelled"];
 
-export function ProjectsBoard({ projects, showClosed }: { projects: Project[]; showClosed: boolean }) {
+export function ProjectsBoard({ projects }: { projects: Project[] }) {
   const [items, setItems] = useState(projects);
   const [active, setActive] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,14 +68,11 @@ export function ProjectsBoard({ projects, showClosed }: { projects: Project[]; s
         <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
           {PROJECT_STATUSES.map((status) => {
             const col = items.filter((p) => p.status === status);
-            const hidden = CLOSED.includes(status) && !showClosed;
             return (
-              <Column key={status} status={status} count={hidden ? null : col.length}>
-                {hidden ? (
-                  <p className="px-1 py-3 text-[13px] text-faint">Hidden. Drop a card here to mark it {status}.</p>
-                ) : (
-                  col.map((p) => <Card key={p.id} project={p} />)
-                )}
+              <Column key={status} status={status} count={col.length}>
+                {col.map((p) => (
+                  <Card key={p.id} project={p} />
+                ))}
               </Column>
             );
           })}

@@ -18,7 +18,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
   const view = sp.view === "table" ? "table" : "board";
   const showClosed = sp.all === "1";
   const [projects, wonOptions, allClients] = await Promise.all([
-    getProjects({ status: sp.status, priority: sp.priority, client: sp.client, tag: sp.tag, all: showClosed }),
+    getProjects({ status: sp.status, priority: sp.priority, client: sp.client, tag: sp.tag, all: showClosed || view === "board" }),
     getClientOptions("closed"),
     getClientOptions("all"),
   ]);
@@ -27,7 +27,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
     <>
       <PageHeader
         title="Projects"
-        description={`${projects.filter((p) => !["Completed", "Cancelled"].includes(p.status)).length} open · ${projects.filter((p) => p.timeline_tag === "Overdue" || p.timeline_tag === "Due Soon").length} due this week · ${projects.filter((p) => !p.deadline && !["Completed", "Cancelled"].includes(p.status)).length} without a deadline`}
+        description={`${projects.filter((p) => !["Completed", "Cancelled"].includes(p.status)).length} open · ${projects.filter((p) => p.status === "Completed").length} completed · ${projects.filter((p) => p.timeline_tag === "Overdue" || p.timeline_tag === "Due Soon").length} due this week · ${projects.filter((p) => !p.deadline && !["Completed", "Cancelled"].includes(p.status)).length} without a deadline`}
         actions={<AddProjectButton clientOptions={wonOptions} />} />
       <ViewTabs base="/projects" view={view} params={sp} />
       <FilterBar
@@ -37,11 +37,11 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
           { key: "client", label: "Client", options: allClients.map((o) => ({ value: o.label.split(" · ")[0], label: o.label })) },
           { key: "tag", label: "Timeline", options: [...TIMELINE_TAGS] },
         ]}
-        toggles={[{ key: "all", label: "Show completed & cancelled" }]}
+        toggles={view === "table" ? [{ key: "all", label: "Show completed & cancelled" }] : []}
       />
 
       {view === "board" ? (
-        <ProjectsBoard projects={projects} showClosed={showClosed} />
+        <ProjectsBoard projects={projects} />
       ) : projects.length === 0 ? (
         <Empty
           message={wonOptions.length ? "No projects here yet." : "No projects yet. Mark a client as Closed and its project is created for you."}
