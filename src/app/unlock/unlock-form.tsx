@@ -11,7 +11,7 @@ export function UnlockForm({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
       <label className="block space-y-1">
         <span className="text-[13px] text-muted">Passcode</span>
-        <Input name="passcode" type="password" autoFocus autoComplete="current-password" required />
+        <Input name="passcode" type="password" inputMode="numeric" autoFocus autoComplete="current-password" required />
       </label>
       {error && <p className="text-[13px] text-danger">{error}</p>}
       <Button type="submit" variant="primary" className="w-full" disabled={pending}>
