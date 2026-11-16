@@ -37,7 +37,7 @@ type BtnVariant = "primary" | "ghost" | "outline" | "danger";
 const btn: Record<BtnVariant, string> = {
   primary: "bg-accent text-accent-fg hover:opacity-85",
   ghost: "text-muted hover:bg-hover hover:text-fg",
-  outline: "border border-line-strong text-fg hover:bg-hover",
+  outline: "border border-line-strong bg-bg text-fg hover:bg-soft",
   danger: "text-danger hover:bg-[var(--tag-red-bg)]",
 };
 
@@ -140,12 +140,12 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={cn("min-w-0", className)}>
-      <div className="flex min-h-9 items-center justify-between gap-2 border-b border-line pb-1.5">
-        <h2 className="text-[14px] font-semibold text-fg">{title}</h2>
+    <section className={cn("card min-w-0 overflow-hidden", className)}>
+      <div className="flex h-12 items-center justify-between gap-2 border-b border-line px-5">
+        <h2 className="text-[15px] font-semibold text-fg">{title}</h2>
         {action}
       </div>
-      <div className="pt-1">{children}</div>
+      <div>{children}</div>
     </section>
   );
 }
@@ -161,10 +161,10 @@ export function Empty({ message, action }: { message: string; action?: ReactNode
 
 export function Stat({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
   return (
-    <div className="border-l border-line pl-4">
+    <div className="card px-5 py-4">
       <div className="text-[13px] text-muted">{label}</div>
       <div className="tabular mt-1 text-[22px] font-semibold tracking-tight text-fg">{value}</div>
-      {sub && <div className="mt-1 text-[13px] text-muted">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[13px] text-muted">{sub}</div>}
     </div>
   );
 }
@@ -179,10 +179,11 @@ export function Td({ children, className }: { children?: ReactNode; className?: 
   return <td className={cn("h-10 whitespace-nowrap px-3 text-sm", className)}>{children}</td>;
 }
 
-export function Table({ children }: { children: ReactNode }) {
+/** Data table. Standalone it renders as its own card; inside a Section pass `bare`. */
+export function Table({ children, bare }: { children: ReactNode; bare?: boolean }) {
   return (
-    <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-      <table className="w-full border-collapse [&_tbody_tr]:border-t [&_tbody_tr]:border-line [&_tbody_tr:hover]:bg-hover">
+    <div className={cn("overflow-x-auto", !bare && "card")}>
+      <table className="w-full border-collapse [&_tbody_tr]:border-t [&_tbody_tr]:border-line [&_tbody_tr:hover]:bg-hover [&_td:first-child]:pl-5 [&_td:last-child]:pr-5 [&_th:first-child]:pl-5 [&_th:last-child]:pr-5 [&_thead]:bg-[var(--column)]">
         {children}
       </table>
     </div>
@@ -210,9 +211,9 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("flex min-w-0 flex-col rounded-xl border border-line bg-bg shadow-[var(--card-shadow)]", className)}>
+    <section className={cn("card flex min-w-0 flex-col", className)}>
       <div className="flex h-12 shrink-0 items-center justify-between gap-2 px-5">
-        <h2 className="flex items-center gap-2 text-[14px] font-semibold">
+        <h2 className="flex items-center gap-2 text-[15px] font-semibold">
           {title}
           {count !== undefined && count > 0 && <span className="tabular text-[13px] font-normal text-faint">{count}</span>}
         </h2>

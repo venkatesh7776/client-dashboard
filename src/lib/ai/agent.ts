@@ -7,7 +7,7 @@ import { getBoardTodos, getFollowUps, getMonthlyIncome, getPayments, getProjects
 import { addDays, addMonths, fmtDate, monthLabel, monthStart, todayIST } from "@/lib/dates";
 import { inr } from "@/lib/format";
 import { db } from "@/lib/supabase";
-import { cardDate, cardFor } from "@/lib/todos";
+import { cardFor, whenDate } from "@/lib/todos";
 import { AGENT_MODEL, vertex } from "./vertex";
 
 // ───────────────────────── helpers
@@ -326,7 +326,7 @@ const tools = {
     }),
     execute: async ({ title, when: w, due_date, priority, project, notes }) => {
       const today = todayIST();
-      const due = due_date ?? cardDate(w === "day_after" ? "dayafter" : (w ?? "today"), today);
+      const due = due_date ?? whenDate(w ?? "today", today);
       const r = await quickAddTodo(title, due);
       if (!r.ok || !r.id) return fail(r);
       if (priority || project || notes) {
@@ -338,18 +338,17 @@ const tools = {
         await saveTodo(r.id, { title, due_date: due, priority, project_id, notes, is_done: false });
       }
       const card = cardFor(due, today);
-      const label = { today: "Today", tomorrow: "Tomorrow", dayafter: "Day After", later: "Later" }[card];
-      return done(`Added to-do “${title}” to ${label}${due && card === "later" ? ` (${fmtDate(due)})` : ""}`, "/todos");
+      return done(`Added to-do “${title}” to ${card === "today" ? "Today" : "Later"}${due && card === "later" ? ` (${fmtDate(due)})` : ""}`, "/todos");
     },
   }),
 
   listTodos: tool({
-    description: "List open to-dos (and ones ticked today) with their card. Use to find a to-do's id before updating it.",
-    inputSchema: z.object({ card: z.enum(["today", "tomorrow", "day_after", "later"]).optional() }),
+    description: "List open to-dos (and ones ticked today) with their card (Today or Later) and due date. Use to find a to-do's id before updating it.",
+    inputSchema: z.object({ card: z.enum(["today", "later"]).optional() }),
     execute: async ({ card }) => {
       const today = todayIST();
       const rows = await getBoardTodos(today);
-      const want = card === "day_after" ? "dayafter" : card;
+      const want = card;
       return {
         ok: true,
         kind: "read" as const,
@@ -380,7 +379,7 @@ const tools = {
         if (!r.ok) return fail(r);
         return done(`${isDone ? "Ticked off" : "Reopened"} “${t.title}”`, "/todos");
       }
-      const due = due_date !== undefined ? due_date : w ? cardDate(w === "day_after" ? "dayafter" : w, todayIST()) : t.due_date;
+      const due = due_date !== undefined ? due_date : w ? whenDate(w, todayIST()) : t.due_date;
       const r = await saveTodo(id, { ...t, title: title ?? t.title, due_date: due, priority: priority === undefined ? t.priority : priority, is_done: isDone ?? t.is_done });
       if (!r.ok) return fail(r);
       return done(`Updated to-do “${title ?? t.title}”${due !== t.due_date ? ` → ${due ? fmtDate(due) : "Later"}` : ""}`, "/todos");

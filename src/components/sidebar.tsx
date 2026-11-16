@@ -75,7 +75,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 z-30 hidden h-dvh shrink-0 flex-col border-r border-line bg-soft pt-4 pb-3 transition-[width] duration-150 md:flex",
+        "sticky top-0 z-30 hidden h-dvh shrink-0 flex-col border-r border-line bg-bg pt-4 pb-3 transition-[width] duration-150 md:flex",
         collapsed ? "w-[64px] items-center px-2" : "w-[248px] px-3",
       )}
     >
@@ -146,7 +146,7 @@ export function BottomBar() {
 
 export function MobileTopBar() {
   return (
-    <div className="flex h-12 items-center justify-between border-b border-line px-4 md:hidden">
+    <div className="flex h-12 items-center justify-between border-b border-line bg-bg px-4 md:hidden">
       <Link href="/" aria-label="TrackMate home">
         <Brand size={26} />
       </Link>

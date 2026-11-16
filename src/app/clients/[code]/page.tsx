@@ -50,7 +50,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ code:
             {projects.length === 0 ? (
               <Empty message={["Closed", "Delivered"].includes(client.status) ? "No projects yet." : "Projects can be added once this client is Closed."} />
             ) : (
-              <Table>
+              <Table bare>
                 <thead>
                   <tr>
                     <Th>Project</Th>
@@ -92,7 +92,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ code:
             {payments.length === 0 ? (
               <Empty message="No payments recorded yet." />
             ) : (
-              <Table>
+              <Table bare>
                 <thead>
                   <tr>
                     <Th>Date</Th>
@@ -120,7 +120,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ code:
 
         <div className="order-1 space-y-4 lg:order-2">
           <Stat label="Total received" value={inr(totalReceived)} sub={`${payments.length} payment${payments.length === 1 ? "" : "s"}`} />
-          <div className="rounded-lg border border-line p-4">
+          <div className="card px-5 py-4">
             <Properties
               rows={[
                 ["Contact", client.contact_person],

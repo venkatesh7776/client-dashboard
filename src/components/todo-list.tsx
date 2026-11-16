@@ -36,9 +36,11 @@ export function TodoRow({
   onToggle,
   onOpen,
   showDate,
+  chip,
 }: {
   todo: Todo;
   today: string;
+  chip?: string;
   onToggle: (done: boolean) => void;
   onOpen?: () => void;
   showDate?: boolean;
@@ -61,8 +63,9 @@ export function TodoRow({
           )}
           {todo.title}
         </div>
-        {(overdue || todo.projects || (showDate && todo.due_date)) && (
+        {(overdue || todo.projects || (showDate && todo.due_date) || chip) && (
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted">
+            {chip && <span className="tabular rounded bg-hover px-1.5 py-px text-[11.5px] text-muted">{chip}</span>}
             {overdue && <Pill tone="red">Overdue · {fmtDate(todo.due_date)}</Pill>}
             {showDate && !overdue && todo.due_date && <span className="tabular">{fmtDate(todo.due_date)}</span>}
             {todo.projects && <span className="truncate">{todo.projects.project_code} · {todo.projects.name}</span>}

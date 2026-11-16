@@ -49,7 +49,7 @@ export function FilterBar({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={search}
-            className="h-7 w-full rounded-[5px] border-0 bg-hover pr-2.5 pl-8 text-[14px] outline-none placeholder:text-faint focus:ring-2 focus:ring-[#2383e2]/30"
+            className="h-8 w-full rounded-md border border-line bg-bg pr-2.5 pl-8 text-[14px] outline-none placeholder:text-faint focus:border-[#2383e2] focus:ring-2 focus:ring-[#2383e2]/20"
           />
         </div>
       )}

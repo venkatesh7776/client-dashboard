@@ -89,7 +89,7 @@ export function ProjectsBoard({ projects, showClosed }: { projects: Project[]; s
 function Column({ status, count, children }: { status: string; count: number | null; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
-    <div ref={setNodeRef} className={cn("flex min-w-[210px] flex-1 flex-col rounded-lg p-1.5 transition-colors", isOver ? "bg-active" : "bg-soft")}>
+    <div ref={setNodeRef} className={cn("flex min-w-[210px] flex-1 flex-col rounded-lg p-1.5 transition-colors", isOver ? "bg-active" : "bg-[var(--column)]")}>
       <div className="flex items-center gap-2 px-1.5 pt-1 pb-2">
         <Pill>{status}</Pill>
         {count !== null && <span className="text-[13px] text-faint">{count}</span>}
@@ -115,7 +115,7 @@ function CardBody({ project: p, dragging }: { project: Project; dragging?: boole
       href={`/projects/${p.project_code}`}
       draggable={false}
       className={cn(
-        "block cursor-grab rounded-md border border-line bg-bg p-2.5 shadow-[0_1px_2px_rgba(15,15,15,0.04)] transition-colors hover:bg-hover active:cursor-grabbing",
+        "block cursor-grab rounded-lg border border-line bg-bg p-3 shadow-[var(--card-shadow)] transition-colors hover:border-line-strong active:cursor-grabbing",
         dragging && "rotate-1 shadow-lg",
       )}
     >

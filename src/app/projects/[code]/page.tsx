@@ -71,7 +71,7 @@ export default async function ProjectDetail({ params }: { params: Promise<{ code
             {todos.length === 0 ? <Empty message="No to-dos linked. Link one from the To-do board's edit panel." /> : <TodoList todos={todos} today={today} />}
           </Section>
         </div>
-        <div className="h-fit rounded-lg border border-line p-4">
+        <div className="card h-fit px-5 py-4">
           <Properties
             rows={[
               [

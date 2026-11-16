@@ -23,9 +23,9 @@ import { quickAddTodo, reorderTodos, toggleTodo } from "@/app/actions";
 import { TodoForm } from "@/components/forms/todo-form";
 import { Sheet } from "@/components/sheet";
 import { TodoRow } from "@/components/todo-list";
-import { addDays, fmtDate } from "@/lib/dates";
+import { fmtDate } from "@/lib/dates";
 import { cn } from "@/lib/format";
-import { CARD_LABEL, CARDS, cardDate, groupTodos, type CardKey } from "@/lib/todos";
+import { CARD_LABEL, CARDS, cardDate, groupTodos, laterLabel, type CardKey } from "@/lib/todos";
 import type { Option, Todo } from "@/lib/types";
 
 type FollowUp = { id: string; client_code: string; name: string; follow_up_date: string | null };
@@ -43,7 +43,7 @@ export function TodoBoard({
   projectOptions: Option[];
 }) {
   const [byId, setById] = useState<Record<string, Todo>>({});
-  const [lists, setLists] = useState<Lists>({ today: [], tomorrow: [], dayafter: [], later: [] });
+  const [lists, setLists] = useState<Lists>({ today: [], later: [] });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Todo | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,8 +55,6 @@ export function TodoBoard({
     setById(Object.fromEntries(todos.map((t) => [t.id, t])));
     setLists({
       today: g.today.map((t) => t.id),
-      tomorrow: g.tomorrow.map((t) => t.id),
-      dayafter: g.dayafter.map((t) => t.id),
       later: g.later.map((t) => t.id),
     });
   }, [todos, today]);
@@ -156,12 +154,12 @@ export function TodoBoard({
         onDragEnd={onDragEnd}
         onDragCancel={() => setActiveId(null)}
       >
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {CARDS.map((card, i) => (
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[3fr_2fr]">
+          {CARDS.map((card) => (
             <TodoCard
               key={card}
               card={card}
-              date={card === "later" ? null : addDays(today, i)}
+              date={card === "today" ? today : null}
               ids={lists[card]}
               byId={byId}
               today={today}
@@ -245,25 +243,34 @@ function TodoCard({
   const open = items.filter((t) => !t.is_done).length;
 
   return (
-    <section className={cn("flex flex-col rounded-lg border border-line bg-soft transition-colors", isOver && "border-line-strong bg-active")}>
-      <header className="flex items-baseline justify-between gap-2 px-3.5 pt-3 pb-2">
-        <h2 className="text-sm font-semibold">{CARD_LABEL[card]}</h2>
-        <span className="text-[12px] text-muted">
-          {date ? fmtDate(date).slice(0, 6) : "Undated & later"}
-          {open > 0 && <span className="ml-2 text-faint">{open}</span>}
-        </span>
+    <section className={cn("card flex min-h-[320px] flex-col transition-shadow", isOver && "ring-2 ring-[#2383e2]/30")}>
+      <header className="flex h-12 items-center justify-between gap-2 px-5">
+        <h2 className="flex items-center gap-2 text-[15px] font-semibold">
+          {CARD_LABEL[card]}
+          {open > 0 && <span className="tabular text-[13px] font-normal text-faint">{open}</span>}
+        </h2>
+        <span className="text-[12.5px] text-muted">{date ? fmtDate(date) : "Upcoming & undated"}</span>
       </header>
-      <div ref={setNodeRef} className="flex min-h-20 flex-1 flex-col px-1.5">
+      <div ref={setNodeRef} className="flex min-h-24 flex-1 flex-col px-3">
         {header}
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           {items.map((t) => (
-            <SortableTodo key={t.id} todo={t} today={today} onToggle={(d) => onToggle(t.id, d)} onOpen={() => onOpen(t)} />
+            <SortableTodo
+              key={t.id}
+              todo={t}
+              today={today}
+              chip={card === "later" ? laterLabel(t.due_date, today) : undefined}
+              onToggle={(d) => onToggle(t.id, d)}
+              onOpen={() => onOpen(t)}
+            />
           ))}
         </SortableContext>
-        {items.length === 0 && !header && <p className="px-2 py-3 text-[13px] text-faint">Nothing here.</p>}
+        {items.length === 0 && !header && (
+          <p className="px-2 py-3 text-[13px] text-faint">{card === "today" ? "Nothing for today yet." : "Nothing planned ahead."}</p>
+        )}
       </div>
       <form
-        className="px-1.5 pt-1 pb-1.5"
+        className="border-t border-line px-3 py-2"
         onSubmit={(e) => {
           e.preventDefault();
           const v = value.trim();
@@ -272,13 +279,13 @@ function TodoCard({
           setValue("");
         }}
       >
-        <label className="flex h-8 items-center gap-2 rounded-md px-2 text-muted focus-within:bg-bg hover:bg-hover">
+        <label className="flex h-9 items-center gap-2 rounded-md px-2 text-muted focus-within:bg-hover hover:bg-hover">
           <Plus size={15} className="shrink-0" />
           <input
             value={value}
             onChange={(e) => setValue(e.target.value)}
             maxLength={200}
-            placeholder="Add a to-do"
+            placeholder={card === "today" ? "Add a to-do for today" : "Add something for later"}
             aria-label={`Add a to-do to ${CARD_LABEL[card]}`}
             className="w-full bg-transparent text-sm text-fg outline-none placeholder:text-faint"
           />
@@ -291,11 +298,13 @@ function TodoCard({
 function SortableTodo({
   todo,
   today,
+  chip,
   onToggle,
   onOpen,
 }: {
   todo: Todo;
   today: string;
+  chip?: string;
   onToggle: (done: boolean) => void;
   onOpen: () => void;
 }) {
@@ -308,7 +317,7 @@ function SortableTodo({
       {...listeners}
       className={cn("touch-manipulation rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#2383e2]/40", isDragging && "opacity-30")}
     >
-      <TodoRow todo={todo} today={today} onToggle={onToggle} onOpen={onOpen} />
+      <TodoRow todo={todo} today={today} chip={chip} onToggle={onToggle} onOpen={onOpen} />
     </div>
   );
 }

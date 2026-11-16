@@ -8,11 +8,11 @@ import { fmtDate } from "@/lib/dates";
 import { inr } from "@/lib/format";
 import type { Option, Payment } from "@/lib/types";
 
-export function PaymentsTable({ payments, clientOptions }: { payments: Payment[]; clientOptions: Option[] }) {
+export function PaymentsTable({ payments, clientOptions, bare }: { payments: Payment[]; clientOptions: Option[]; bare?: boolean }) {
   const [editing, setEditing] = useState<Payment | null>(null);
   return (
     <>
-      <Table>
+      <Table bare={bare}>
         <thead>
           <tr>
             <Th>Date</Th>

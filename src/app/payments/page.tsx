@@ -36,7 +36,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: SP 
           title="All payments"
           action={filtered && <span className="tabular text-[13px] text-muted">{payments.length} shown · {inr(shownTotal)}</span>}
         >
-          <div className="px-4 pt-3">
+          <div className="px-5 pt-3">
             <FilterBar
               search="Search client or Client ID"
               filters={[
@@ -52,9 +52,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: SP 
               action={!filtered && <AddPaymentButton clientOptions={options} label="Add payment" urlDriven={false} />}
             />
           ) : (
-            <div className="px-4 pb-2">
-              <PaymentsTable payments={payments} clientOptions={options} />
-              {payments.length >= 300 && <p className="py-3 text-[12.5px] text-faint">Showing the latest 300. Use filters to narrow down.</p>}
+            <div className="pb-1">
+              <PaymentsTable payments={payments} clientOptions={options} bare />
+              {payments.length >= 300 && <p className="px-5 py-3 text-[12.5px] text-faint">Showing the latest 300. Use filters to narrow down.</p>}
             </div>
           )}
         </Section>
