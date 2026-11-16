@@ -192,3 +192,46 @@ export function Table({ children }: { children: ReactNode }) {
 export function Code({ children }: { children: ReactNode }) {
   return <span className="tabular text-[12.5px] text-muted">{children}</span>;
 }
+
+// ───────────────────────── Dashboard panel
+
+/** A quiet container: hairline border, soft radius, title row. Used to give the Home grid structure. */
+export function Panel({
+  title,
+  count,
+  action,
+  children,
+  className,
+}: {
+  title: ReactNode;
+  count?: number;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn("flex min-w-0 flex-col rounded-[10px] border border-line bg-bg", className)}>
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 px-5">
+        <h2 className="flex items-center gap-2 text-[14px] font-semibold">
+          {title}
+          {count !== undefined && count > 0 && <span className="tabular text-[13px] font-normal text-faint">{count}</span>}
+        </h2>
+        {action}
+      </div>
+      <div className="flex-1 pb-3">{children}</div>
+    </section>
+  );
+}
+
+export function PanelEmpty({ text, href, cta }: { text: string; href?: string; cta?: string }) {
+  return (
+    <div className="flex h-full min-h-28 flex-col items-center justify-center gap-1 px-5 text-center">
+      <p className="text-[13px] text-faint">{text}</p>
+      {href && cta && (
+        <Link href={href} className="text-[13px] font-medium text-muted underline-offset-2 hover:text-fg hover:underline">
+          {cta}
+        </Link>
+      )}
+    </div>
+  );
+}

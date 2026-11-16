@@ -15,7 +15,7 @@ export function YearSelect({ year, years }: { year: number; years: number[] }) {
         next.set("year", e.target.value);
         router.replace(`${pathname}?${next}`, { scroll: false });
       }}
-      className="h-7 cursor-pointer rounded-md border border-line bg-bg px-2 text-[13px] font-medium outline-none hover:bg-hover"
+      className="h-7 cursor-pointer rounded-[5px] border-0 bg-transparent px-1.5 text-[13px] text-muted outline-none hover:bg-hover hover:text-fg"
     >
       {years.map((y) => (
         <option key={y} value={y}>

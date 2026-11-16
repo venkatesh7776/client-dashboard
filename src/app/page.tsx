@@ -1,11 +1,12 @@
-import { ArrowDownRight, ArrowUpRight, Bell, Plus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Bell } from "lucide-react";
 import Link from "next/link";
 import { IncomeChart } from "@/components/income-chart";
 import { MonthlyIncomeList } from "@/components/income";
 import { MidnightRefresh } from "@/components/midnight-refresh";
 import { RangeSelect } from "@/components/range-select";
-import { Empty, LinkButton, Pill, Section } from "@/components/ui";
 import { TodoList } from "@/components/todo-list";
+import { Panel, PanelEmpty, Pill } from "@/components/ui";
+import { YearSelect } from "@/components/year-select";
 import { CLIENT_STATUSES } from "@/lib/constants";
 import {
   getBoardTodos,
@@ -18,9 +19,10 @@ import {
   getProjectsByTag,
 } from "@/lib/data";
 import { fmtDate, monthStart, todayIST } from "@/lib/dates";
-import { rangeOptions, resolveRange } from "@/lib/ranges";
 import { cn, inr } from "@/lib/format";
+import { rangeOptions, resolveRange } from "@/lib/ranges";
 import { cardFor } from "@/lib/todos";
+import type { Project } from "@/lib/types";
 
 type SP = Promise<Record<string, string | undefined>>;
 
@@ -50,67 +52,91 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
   const delta = total - prevTotal;
   const pct = prevTotal > 0 ? Math.round((delta / prevTotal) * 100) : null;
 
-  const toStart = timeline
-    .filter((p) => p.timeline_tag === "Should Have Started" || p.timeline_tag === "Start Soon")
-    .sort((a, b) => (a.timeline_tag === b.timeline_tag ? (a.start_date ?? "").localeCompare(b.start_date ?? "") : a.timeline_tag === "Should Have Started" ? -1 : 1));
   const deadlines = timeline
     .filter((p) => p.timeline_tag === "Overdue" || p.timeline_tag === "Due Soon")
     .sort((a, b) => (a.timeline_tag === b.timeline_tag ? (a.deadline ?? "").localeCompare(b.deadline ?? "") : a.timeline_tag === "Overdue" ? -1 : 1));
+  const toStart = timeline
+    .filter((p) => p.timeline_tag === "Should Have Started" || p.timeline_tag === "Start Soon")
+    .sort((a, b) => (a.timeline_tag === b.timeline_tag ? (a.start_date ?? "").localeCompare(b.start_date ?? "") : a.timeline_tag === "Should Have Started" ? -1 : 1));
   const todayTodos = todos.filter((t) => cardFor(t.due_date, today) === "today");
+  const openToday = todayTodos.filter((t) => !t.is_done).length + followUps.length;
 
   return (
     <>
-      <div className="mb-8">
+      <header className="mb-6">
         <p className="text-[13px] text-muted">
           {WEEKDAY.format(new Date())}, {fmtDate(today)}
         </p>
         <h1 className="mt-1 text-[30px] leading-tight font-bold tracking-[-0.02em] sm:text-[36px]">Home</h1>
-      </div>
+      </header>
 
-      {/* Revenue — one card, with a period filter */}
-      <div className="mb-8 border-b border-line pb-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-[13px] text-muted">Revenue</div>
-          <RangeSelect value={range.key} groups={rangeOptions(today)} />
-        </div>
-        <div className="tabular mt-2 text-[36px] leading-tight font-semibold tracking-tight sm:text-[40px]">{inr(total)}</div>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
-          <span>
-            {fmtDate(range.from)} – {fmtDate(range.to)} · {inRange.length} payment{inRange.length === 1 ? "" : "s"}
-          </span>
-          <span className="text-faint">·</span>
-          <span className="inline-flex items-center gap-1">
-            {delta !== 0 && (
-              <span className="inline-flex items-center" style={{ color: `var(--tag-${delta > 0 ? "green" : "red"}-fg)` }}>
-                {delta > 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                {pct !== null ? `${Math.abs(pct)}%` : inr(Math.abs(delta))}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Income: headline number + 12-month chart, one panel */}
+        <Panel className="lg:col-span-2" title="Income" action={<RangeSelect value={range.key} groups={rangeOptions(today)} />}>
+          <div className="px-5 pt-1">
+            <div className="tabular text-[40px] leading-none font-semibold tracking-[-0.02em]">{inr(total)}</div>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
+              <span>
+                {fmtDate(range.from)} – {fmtDate(range.to)} · {inRange.length} payment{inRange.length === 1 ? "" : "s"}
               </span>
-            )}
-            {delta === 0 ? "Same as" : "vs"} {inr(prevTotal)} in {range.compareLabel}
-          </span>
-        </div>
-      </div>
+              <span className="inline-flex items-center gap-1">
+                {delta !== 0 && (
+                  <span className="inline-flex items-center font-medium" style={{ color: `var(--tag-${delta > 0 ? "green" : "red"}-fg)` }}>
+                    {delta > 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                    {pct !== null ? `${Math.abs(pct)}%` : inr(Math.abs(delta))}
+                  </span>
+                )}
+                {delta === 0 ? "same as" : "vs"} {inr(prevTotal)} in {range.compareLabel}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 border-t border-line px-2 pt-2">
+            <div className="flex items-center justify-between px-3 pt-1 text-[12px] text-muted">
+              <span>Last 12 months</span>
+              <span className="inline-flex items-center gap-3">
+                <Legend color="var(--chart-1)" label="Past months" />
+                <Legend color="var(--chart-2)" label="This month" />
+              </span>
+            </div>
+            <IncomeChart data={chart} current={thisMonth} />
+          </div>
+        </Panel>
 
-      {/* DB-8 Pipeline */}
-      <div className="mb-8 flex flex-wrap items-center gap-2">
-        <span className="mr-2 text-[13px] text-muted">Pipeline</span>
-        {CLIENT_STATUSES.map((s) => (
-          <Link
-            key={s}
-            href={`/clients?view=table&status=${encodeURIComponent(s)}`}
-            className="flex items-center gap-1.5 rounded-[5px] py-1 pr-2 pl-1 transition-colors hover:bg-hover"
-          >
-            <Pill>{s}</Pill>
-            <span className="tabular text-sm font-medium">{pipeline[s] ?? 0}</span>
-          </Link>
-        ))}
-      </div>
+        <Panel title="Monthly income" action={<YearSelect year={year} years={years} />}>
+          <MonthlyIncomeList rows={months} year={year} compact />
+        </Panel>
 
-      <div className="mb-6 grid gap-6 lg:grid-cols-2">
-        {/* DB-7 */}
-        <Section title="Today's to-dos" action={<Link href="/todos" className="text-[13px] text-muted hover:text-fg">Open board</Link>}>
+        {/* Pipeline strip */}
+        <Panel className="lg:col-span-3" title="Pipeline" action={<Link href="/clients" className="text-[13px] text-muted hover:text-fg">All clients</Link>}>
+          <div className="grid grid-cols-3 sm:grid-cols-6">
+            {CLIENT_STATUSES.map((s, i) => (
+              <Link
+                key={s}
+                href={`/clients?view=table&status=${encodeURIComponent(s)}`}
+                className={cn(
+                  "group flex min-w-0 flex-col gap-2 px-3 py-4 transition-colors hover:bg-hover sm:px-5",
+                  i % 3 !== 0 && "border-l border-line",
+                  i >= 3 && "border-t border-line sm:border-t-0",
+                  i === 3 && "sm:border-l",
+                )}
+              >
+                <span>
+                  <Pill>{s}</Pill>
+                </span>
+                <span className="tabular text-[24px] leading-none font-semibold">{pipeline[s] ?? 0}</span>
+              </Link>
+            ))}
+          </div>
+        </Panel>
+
+        {/* Today */}
+        <Panel
+          title="Today"
+          count={openToday}
+          action={<Link href="/todos" className="text-[13px] text-muted hover:text-fg">Open board</Link>}
+        >
           {followUps.length > 0 && (
-            <div className="border-b border-line p-1.5">
+            <div className="px-2 pb-1">
               {followUps.map((f) => (
                 <Link key={f.id} href={`/clients/${f.client_code}`} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-hover">
                   <Bell size={14} className="shrink-0" style={{ color: "var(--tag-orange-fg)" }} />
@@ -120,94 +146,91 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
               ))}
             </div>
           )}
-          {todayTodos.length === 0 ? (
-            followUps.length === 0 && (
-              <Empty message="Nothing planned for today." action={<LinkButton href="/todos" size="sm"><Plus size={14} /> Add to-do</LinkButton>} />
-            )
+          {todayTodos.length > 0 ? (
+            <div className="px-0.5">
+              <TodoList todos={todayTodos} today={today} showDate={false} />
+            </div>
+          ) : followUps.length === 0 ? (
+            <PanelEmpty text="Nothing planned for today." href="/todos" cta="Add a to-do" />
+          ) : null}
+        </Panel>
+
+        {/* Deadlines (first), then projects to start */}
+        <Panel title="Upcoming deadlines" count={deadlines.length}>
+          {deadlines.length === 0 ? (
+            <PanelEmpty text="No deadlines in the next 7 days." />
           ) : (
-            <TodoList todos={todayTodos} today={today} showDate={false} />
+            <ProjectRows
+              projects={deadlines}
+              sub={(p) => `Due ${fmtDate(p.deadline)}`}
+              right={(p) =>
+                p.days_left === null ? "" : p.days_left < 0 ? `${-p.days_left}d overdue` : p.days_left === 0 ? "Today" : `${p.days_left}d left`
+              }
+              late={(p) => (p.days_left ?? 0) < 0}
+            />
           )}
-        </Section>
+        </Panel>
 
-        <div className="space-y-6">
-          {/* DB-6 */}
-          <Section title="Upcoming deadlines">
-            {deadlines.length === 0 ? (
-              <Empty message="No deadlines in the next 7 days." action={<LinkButton href="/projects?new=1" size="sm"><Plus size={14} /> Add project</LinkButton>} />
-            ) : (
-              <ul className="p-1.5">
-                {deadlines.map((p) => (
-                  <li key={p.id}>
-                    <Link href={`/projects/${p.project_code}`} className="flex items-center gap-3 rounded-md px-2.5 py-2 hover:bg-hover">
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium">{p.name}</div>
-                        <div className="text-[12.5px] text-muted">
-                          {p.client_code} · Due {fmtDate(p.deadline)}
-                        </div>
-                      </div>
-                      <span className={cn("tabular text-[12.5px] whitespace-nowrap", (p.days_left ?? 0) < 0 ? "text-danger" : "text-muted")}>
-                        {p.days_left === null ? "" : p.days_left < 0 ? `${-p.days_left}d overdue` : p.days_left === 0 ? "Today" : `${p.days_left}d left`}
-                      </span>
-                      <Pill>{p.timeline_tag!}</Pill>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
-          {/* DB-5 */}
-          <Section title="Projects to start">
-            {toStart.length === 0 ? (
-              <Empty message="No projects need starting soon." action={<LinkButton href="/projects?new=1" size="sm"><Plus size={14} /> Add project</LinkButton>} />
-            ) : (
-              <ul className="p-1.5">
-                {toStart.map((p) => {
-                  const d = p.days_until_start ?? 0;
-                  return (
-                    <li key={p.id}>
-                      <Link href={`/projects/${p.project_code}`} className="flex items-center gap-3 rounded-md px-2.5 py-2 hover:bg-hover">
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{p.name}</div>
-                          <div className="text-[12.5px] text-muted">
-                            {p.client_code} · Start {fmtDate(p.start_date)}
-                          </div>
-                        </div>
-                        <span className={cn("tabular text-[12.5px] whitespace-nowrap", d < 0 ? "text-danger" : "text-muted")}>
-                          {d < 0 ? `${-d}d late` : d === 0 ? "Today" : `in ${d}d`}
-                        </span>
-                        <Pill>{p.timeline_tag!}</Pill>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Section>
-
-        </div>
-      </div>
-
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_380px]">
-        {/* DB-4 */}
-        <Section title="Income · last 12 months">
-          {chart.every((m) => m.total === 0) ? (
-            <Empty message="No income recorded yet." action={<LinkButton href="/payments?new=1" size="sm"><Plus size={14} /> Add payment</LinkButton>} />
+        <Panel title="Projects to start" count={toStart.length}>
+          {toStart.length === 0 ? (
+            <PanelEmpty text="Nothing needs starting soon." />
           ) : (
-            <IncomeChart data={chart} current={thisMonth} />
+            <ProjectRows
+              projects={toStart}
+              sub={(p) => `Start ${fmtDate(p.start_date)}`}
+              right={(p) => {
+                const d = p.days_until_start ?? 0;
+                return d < 0 ? `${-d}d late` : d === 0 ? "Today" : `in ${d}d`;
+              }}
+              late={(p) => (p.days_until_start ?? 0) < 0}
+            />
           )}
-        </Section>
-        {/* DB-3 */}
-        <Section title="Monthly income">
-          <MonthlyIncomeList
-            rows={months}
-            year={year}
-            years={years}
-            emptyAction={<LinkButton href="/payments?new=1" size="sm"><Plus size={14} /> Add payment</LinkButton>}
-          />
-        </Section>
+        </Panel>
       </div>
 
       <MidnightRefresh today={today} />
     </>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="size-2 rounded-[2px]" style={{ background: color }} />
+      {label}
+    </span>
+  );
+}
+
+function ProjectRows({
+  projects,
+  sub,
+  right,
+  late,
+}: {
+  projects: Project[];
+  sub: (p: Project) => string;
+  right: (p: Project) => string;
+  late: (p: Project) => boolean;
+}) {
+  return (
+    <ul className="px-2 pb-1">
+      {projects.map((p) => (
+        <li key={p.id}>
+          <Link href={`/projects/${p.project_code}`} className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-hover">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium">{p.name}</div>
+              <div className="truncate text-[12.5px] text-muted">
+                {p.client_code} · {sub(p)}
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <Pill>{p.timeline_tag!}</Pill>
+              <span className={cn("tabular text-[12px]", late(p) ? "text-danger" : "text-muted")}>{right(p)}</span>
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

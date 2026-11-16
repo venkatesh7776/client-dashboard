@@ -17,6 +17,9 @@
   --danger: #d44c47;
   --chart: #37352f;
   --side-fg: #5f5e5b;
+  --chart-1: #86b6ef; /* past months — blue 250 (2.06:1, validated) */
+  --chart-2: #2a78d6; /* this month — blue 450 */
+  --chart-grid: #efefed;
 
   /* Notion tag colours (light) */
   --tag-gray-bg: #f1f1ef;   --tag-gray-fg: #787774;
@@ -45,6 +48,9 @@
   --danger: #e6625d;
   --chart: #d4d4d4;
   --side-fg: rgba(255, 255, 255, 0.62);
+  --chart-1: #256abf; /* blue 500 */
+  --chart-2: #6da7ec; /* blue 300 */
+  --chart-grid: #2a2a2a;
 
   --tag-gray-bg: #2f2f2f;   --tag-gray-fg: #9b9b9b;
   --tag-brown-bg: #4a3228;  --tag-brown-fg: #ba856f;
