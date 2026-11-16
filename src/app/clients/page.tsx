@@ -1,10 +1,11 @@
-import { Columns3, Table2 } from "lucide-react";
 import Link from "next/link";
+import { DeleteClientButton } from "@/components/delete-buttons";
 import { FilterBar } from "@/components/filter-bar";
 import { AddClientButton } from "@/components/panels";
+import { ViewTabs } from "@/components/view-tabs";
 import { Empty, PageHeader, Pill, Table, Td, Th } from "@/components/ui";
 import { CLIENT_STATUSES, LEAD_SOURCES } from "@/lib/constants";
-import { getClientOptions, getClients } from "@/lib/data";
+import { getClients } from "@/lib/data";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { cn, inr } from "@/lib/format";
 import { ClientsBoard } from "./clients-board";
@@ -16,43 +17,18 @@ export default async function ClientsPage({ searchParams }: { searchParams: SP }
   const view = sp.view === "table" ? "table" : "board";
   const showLost = sp.lost === "1";
   const today = todayIST();
-  const [clients, wonOptions] = await Promise.all([
-    getClients({ q: sp.q, status: sp.status, source: sp.source, showLost }),
-    getClientOptions("won"),
-  ]);
+  const clients = await getClients({ q: sp.q, status: sp.status, source: sp.source, showLost });
   const visible = clients;
-
-  const tab = (v: string) => {
-    const p = new URLSearchParams(sp as Record<string, string>);
-    p.set("view", v);
-    return `/clients?${p}`;
-  };
 
   return (
     <>
       <PageHeader
         title="Clients & Leads"
         description="Every lead and client in one place."
-        actions={<AddClientButton wonOptions={wonOptions} />}
+        actions={<AddClientButton />}
       />
 
-      <div className="mb-3 flex items-center gap-1 border-b border-line">
-        {[
-          { v: "board", label: "Board", icon: Columns3 },
-          { v: "table", label: "Table", icon: Table2 },
-        ].map(({ v, label, icon: Icon }) => (
-          <Link
-            key={v}
-            href={tab(v)}
-            className={cn(
-              "-mb-px flex items-center gap-1.5 border-b-2 px-2 pb-2 text-sm",
-              view === v ? "border-fg text-fg" : "border-transparent text-muted hover:text-fg",
-            )}
-          >
-            <Icon size={15} /> {label}
-          </Link>
-        ))}
-      </div>
+      <ViewTabs base="/clients" view={view} params={sp} />
 
       <FilterBar
         search="Search name or Client ID"
@@ -64,9 +40,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: SP }
       />
 
       {view === "board" ? (
-        <ClientsBoard clients={visible} today={today} showLost={showLost} wonOptions={wonOptions} />
+        <ClientsBoard clients={visible} today={today} showLost={showLost} />
       ) : visible.length === 0 ? (
-        <Empty message="No clients match. Add your first lead to get started." action={<AddClientButton wonOptions={wonOptions} label="Add client" />} />
+        <Empty message="No clients match. Add your first lead to get started." action={<AddClientButton label="Add client" />} />
       ) : (
         <Table>
           <thead>
@@ -77,6 +53,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: SP }
               <Th>Source</Th>
               <Th>Follow-up</Th>
               <Th className="text-right">Expected value</Th>
+              <Th className="w-10" />
             </tr>
           </thead>
           <tbody>
@@ -101,6 +78,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: SP }
                     </span>
                   </Td>
                   <Td className="tabular text-right">{inr(c.expected_value)}</Td>
+                  <Td className="w-10 px-1">
+                    <DeleteClientButton id={c.id} label={`${c.client_code} · ${c.name}`} icon />
+                  </Td>
                 </tr>
               );
             })}

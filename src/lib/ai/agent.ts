@@ -121,7 +121,7 @@ const tools = {
       const r = await saveClient(null, { status: "Lead", ...input });
       if (!r.ok) return fail(r);
       const status = input.status ?? "Lead";
-      return done(`Added ${r.label} as ${status}`, `/clients/${r.code}`);
+      return done(`Added ${r.label} as ${status}${r.projectCode ? ` · project ${r.projectCode} created (no dates yet)` : ""}`, r.projectCode ? `/projects/${r.projectCode}` : `/clients/${r.code}`);
     },
   }),
 
@@ -149,12 +149,18 @@ const tools = {
       if (keys.length === 1 && changes.status) {
         const s = await setClientStatus(r.client.id, changes.status);
         if (!s.ok) return fail(s);
-        return done(`${r.client.client_code} · ${r.client.name} → ${changes.status}`, `/clients/${r.client.client_code}`);
+        return done(
+          `${r.client.client_code} · ${r.client.name} → ${changes.status}${s.projectCode ? ` · project ${s.projectCode} created (no dates yet)` : ""}`,
+          s.projectCode ? `/projects/${s.projectCode}` : `/clients/${r.client.client_code}`,
+        );
       }
       const { data: cur } = await db().from("clients").select("*").eq("id", r.client.id).single();
       const s = await saveClient(r.client.id, { ...cur, ...changes });
       if (!s.ok) return fail(s);
-      return done(`Updated ${s.label}: ${keys.join(", ").replace(/_/g, " ")}`, `/clients/${s.code}`);
+      return done(
+        `Updated ${s.label}: ${keys.join(", ").replace(/_/g, " ")}${s.projectCode ? ` · project ${s.projectCode} created (no dates yet)` : ""}`,
+        `/clients/${s.code}`,
+      );
     },
   }),
 
@@ -187,27 +193,25 @@ const tools = {
   }),
 
   addProject: tool({
-    description: "Create a project for a Won client. Ask for the deadline if the user didn't give one. Start date defaults to today.",
+    description: "Create an additional project for a Won client. Dates are optional — leave them out if the user didn't give them.",
     inputSchema: z.object({
       client: z.string().describe("Client ID or name"),
       name: z.string(),
       start_date: isoDate.optional(),
-      deadline: isoDate,
+      deadline: isoDate.optional(),
       priority: z.enum(PRIORITIES).optional(),
       status: z.enum(PROJECT_STATUSES).optional(),
       value: z.number().optional().describe("Rupees"),
-      notes: z.string().optional(),
+      notes: z.string().optional().describe("Project description"),
     }),
     execute: async ({ client, ...p }) => {
       const r = await resolveClient(client);
       if (!r.client) return { ok: false, kind: "write" as const, error: r.error, matches: r.matches };
       if (r.client.status !== "Won")
         return { ok: false, kind: "write" as const, error: `${r.client.client_code} · ${r.client.name} is ${r.client.status}, not Won. Projects need a Won client — ask whether to mark it Won first.` };
-      const s = await saveProject(null, {
-        client_id: r.client.id, start_date: todayIST(), priority: "Medium", status: "Not Started", ...p,
-      });
+      const s = await saveProject(null, { client_id: r.client.id, priority: "Medium", status: "Not Started", ...p });
       if (!s.ok) return fail(s);
-      return done(`Added ${s.code} · ${p.name} for ${r.client.client_code}, due ${fmtDate(p.deadline)}`, `/projects/${s.code}`);
+      return done(`Added ${s.code} · ${p.name} for ${r.client.client_code}${p.deadline ? `, due ${fmtDate(p.deadline)}` : " (no deadline yet)"}`, `/projects/${s.code}`);
     },
   }),
 
@@ -217,12 +221,12 @@ const tools = {
       project: z.string().describe("Project ID like PR-003 or the project name"),
       changes: z.object({
         name: z.string().optional(),
-        start_date: isoDate.optional(),
-        deadline: isoDate.optional(),
+        start_date: isoDate.nullable().optional(),
+        deadline: isoDate.nullable().optional(),
         priority: z.enum(PRIORITIES).optional(),
         status: z.enum(PROJECT_STATUSES).optional(),
         value: z.number().optional(),
-        notes: z.string().optional(),
+        notes: z.string().optional().describe("Project description; replaces the old one, include existing text if appending"),
       }),
     }),
     execute: async ({ project, changes }) => {
@@ -417,8 +421,9 @@ How to work:
 - Refer to clients by name or Client ID; the tools resolve them. If a tool says several match or none match, ask a short question.
 - Never invent IDs or numbers. Only report what tools returned.
 - Money is Indian Rupees. "20k" = 20000, "1.5 lakh" = 150000, "2 cr" = 20000000. Write amounts like ₹1,20,000.
-- Projects need a Won client. If the client isn't Won and the user clearly just won it, mark it Won first, then add the project.
-- You cannot delete anything. If asked, say they can delete it from the item's page.
+- When a client becomes Won (on create or status change), the app automatically creates one project named after the client with no dates. Don't create a duplicate: if the user gives project details (name, deadline, value, description) for a client that just became Won, update that auto-created project with updateProject instead.
+- Projects need a Won client. Dates are optional; never ask for a deadline just to create a project.
+- You cannot delete anything. If asked, say they can delete it from the item's page or the trash icon in the list.
 - The owner may speak Hinglish or mix Telugu/Hindi with English, and voice transcripts can mishear names — match names loosely via the search tools.
 
 Replies: plain text, no markdown (no **bold**, no headings). Use a simple "- " list only when listing several items. Write dates like 23 Nov 2026, never yyyy-MM-dd. One or two short sentences after actions, mentioning the IDs (e.g. "Done — recorded PY-012 · ₹20,000 from CL-004 Acme."). For questions, answer directly with the numbers.`;

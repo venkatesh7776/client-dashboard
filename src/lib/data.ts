@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "./supabase";
 import { addMonths, monthStart, startOfTodayISTUtc, todayIST } from "./dates";
-import type { Client, MonthRow, Option, Payment, Project, Todo } from "./types";
+import type { Client, MonthRow, Option, Payment, Project, ProjectFile, Todo } from "./types";
 
 const clean = (q?: string) => (q ?? "").replace(/[,()%*\\"]/g, " ").trim();
 
@@ -165,4 +165,12 @@ export async function getProjectTodos(projectId: string) {
   return check(
     await db().from("todos").select(TODO_SELECT).eq("project_id", projectId).order("is_done").order("due_date"),
   ) as Todo[];
+}
+
+// ───────────────────────── Project files
+
+export async function getProjectFiles(projectId: string) {
+  return check(
+    await db().from("project_files").select("*").eq("project_id", projectId).order("created_at", { ascending: false }),
+  ) as ProjectFile[];
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { deleteClient, saveClient, setClientStatus, type ActionResult } from "@/app/actions";
-import { Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { useState } from "react";
+import { saveClient, type ActionResult } from "@/app/actions";
+import { Field, Input, Select, Textarea } from "@/components/ui";
 import { CLIENT_STATUSES, LEAD_SOURCES } from "@/lib/constants";
 import { clientSchema } from "@/lib/schemas";
 import type { Client } from "@/lib/types";
@@ -14,43 +14,18 @@ export function ClientForm({
   defaultStatus,
   onSaved,
   onCancel,
-  onDeleted,
 }: {
   client?: Client | null;
   defaultStatus?: string;
   onSaved: (r: ActionResult) => void;
   onCancel: () => void;
-  onDeleted?: () => void;
 }) {
   const [status, setStatus] = useState(client?.status ?? defaultStatus ?? "Lead");
-  const [suggestLost, setSuggestLost] = useState(false);
-  const [busy, startBusy] = useTransition();
-  const { errors, formError, pending, onSubmit, setFormError } = useEntityForm(
+  const { errors, formError, pending, onSubmit } = useEntityForm(
     clientSchema,
     (input) => saveClient(client?.id ?? null, input),
     onSaved,
   );
-
-  function remove() {
-    if (!client) return;
-    startBusy(async () => {
-      const r = await deleteClient(client.id);
-      if (r.ok) onDeleted?.();
-      else {
-        setFormError(r.error ?? "Could not delete");
-        setSuggestLost(!!r.suggestLost);
-      }
-    });
-  }
-
-  function markLost() {
-    if (!client) return;
-    startBusy(async () => {
-      const r = await setClientStatus(client.id, "Lost");
-      if (r.ok) onSaved(r);
-      else setFormError(r.error ?? "Could not update");
-    });
-  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -107,19 +82,11 @@ export function ClientForm({
         <Textarea name="notes" defaultValue={client?.notes ?? ""} rows={4} />
       </Field>
 
-      <FormError message={formError} />
-      {suggestLost && client?.status !== "Lost" && (
-        <Button variant="outline" size="sm" onClick={markLost} disabled={busy}>
-          Mark as Lost instead
-        </Button>
+      {status === "Won" && client?.status !== "Won" && (
+        <p className="text-[12.5px] text-muted">A project for this client is created automatically when you save. Add its dates later.</p>
       )}
-
-      <FormFooter
-        pending={pending || busy}
-        onCancel={onCancel}
-        onDelete={client ? remove : undefined}
-        submitLabel={client ? "Save" : "Add client"}
-      />
+      <FormError message={formError} />
+      <FormFooter pending={pending} onCancel={onCancel} submitLabel={client ? "Save" : "Add client"} />
     </form>
   );
 }

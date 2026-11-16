@@ -148,3 +148,24 @@ alter table payments enable row level security;
 alter table todos    enable row level security;
 
 revoke all on clients, projects, payments, todos, monthly_income, project_timeline from anon, authenticated;
+
+-- ───────────────────────── v2 (16 Nov 2026): optional project dates, project files
+alter table projects alter column start_date drop not null;
+alter table projects alter column deadline drop not null;
+
+create table if not exists project_files (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  name text not null,
+  path text not null unique,
+  size bigint,
+  mime text,
+  created_at timestamptz not null default now()
+);
+create index if not exists project_files_project_idx on project_files(project_id);
+alter table project_files enable row level security;
+revoke all on project_files from anon, authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('project-files', 'project-files', false, 52428800)
+on conflict (id) do nothing;

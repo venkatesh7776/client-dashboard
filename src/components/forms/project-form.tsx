@@ -26,7 +26,7 @@ export function ProjectForm({
   onDeleted?: () => void;
 }) {
   const today = todayIST();
-  const [start, setStart] = useState(project?.start_date ?? today);
+  const [start, setStart] = useState(project ? (project.start_date ?? "") : today);
   const [deadline, setDeadline] = useState(project?.deadline ?? "");
   const [busy, startBusy] = useTransition();
   const { errors, formError, pending, onSubmit, setFormError } = useEntityForm(
@@ -78,16 +78,15 @@ export function ProjectForm({
         <Input name="name" defaultValue={project?.name} maxLength={120} autoFocus={!project} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Start date" required error={errors.start_date} hint="The day work should begin">
+        <Field label="Start date" error={errors.start_date} hint="Optional">
           <Input name="start_date" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
         </Field>
         <Field
           label="Deadline"
-          required
           error={errors.deadline}
-          hint={duration ? `${duration} day${duration === 1 ? "" : "s"}` : undefined}
+          hint={duration ? `${duration} day${duration === 1 ? "" : "s"}` : "Optional — add it later"}
         >
-          <Input name="deadline" type="date" min={start} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+          <Input name="deadline" type="date" min={start || undefined} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -109,8 +108,8 @@ export function ProjectForm({
       <Field label="Project value (₹)" error={errors.value}>
         <Input name="value" type="number" min={0} step="0.01" inputMode="decimal" defaultValue={project?.value ?? ""} />
       </Field>
-      <Field label="Notes" error={errors.notes} hint="Scope, links, terms">
-        <Textarea name="notes" defaultValue={project?.notes ?? ""} rows={4} />
+      <Field label="Description" error={errors.notes} hint="Scope, links, terms — anything about the project">
+        <Textarea name="notes" defaultValue={project?.notes ?? ""} rows={6} />
       </Field>
       <FormError message={formError} />
       <FormFooter

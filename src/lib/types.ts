@@ -21,15 +21,15 @@ export type Project = {
   client_code: string;
   client_name: string;
   name: string;
-  start_date: string;
-  deadline: string;
+  start_date: string | null;
+  deadline: string | null;
   priority: string;
   status: string;
   value: number | null;
   notes: string | null;
-  duration_days: number;
+  duration_days: number | null;
   days_until_start: number | null;
-  days_left: number;
+  days_left: number | null;
   timeline_tag: string | null;
 };
 
@@ -61,3 +61,13 @@ export type Todo = {
 export type Option = { value: string; label: string };
 
 export type MonthRow = { month: string; total: number; count: number };
+
+export type ProjectFile = {
+  id: string;
+  project_id: string;
+  name: string;
+  path: string;
+  size: number | null;
+  mime: string | null;
+  created_at: string;
+};

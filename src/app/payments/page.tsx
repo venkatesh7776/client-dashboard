@@ -28,11 +28,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: SP 
     <>
       <PageHeader title="Payments" description="Every rupee received, by client and by month." actions={<AddPaymentButton clientOptions={options} />} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_1fr]">
-        <Section title="Monthly income">
-          <MonthlyIncomeList rows={months} year={year} years={years} />
-        </Section>
-
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_minmax(0,380px)]">
         <Section
           title="All payments"
           action={filtered && <span className="tabular text-[13px] text-muted">{payments.length} shown · {inr(shownTotal)}</span>}
@@ -59,6 +55,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: SP 
             </div>
           )}
         </Section>
+        <Section title="Monthly income">
+          <MonthlyIncomeList rows={months} year={year} years={years} />
+        </Section>
+
       </div>
     </>
   );

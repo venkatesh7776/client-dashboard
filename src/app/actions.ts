@@ -13,6 +13,7 @@ export type ActionResult = {
   code?: string;
   label?: string;
   becameWon?: boolean;
+  projectCode?: string;
   suggestLost?: boolean;
 };
 
@@ -28,22 +29,33 @@ function fail(e: unknown): ActionResult {
 
 // ───────────────────────── Clients
 
+/** When a client becomes Won and has no project yet, create one (no dates) so it can be filled in later. */
+async function ensureWonProject(clientId: string, clientName: string): Promise<{ code: string } | null> {
+  const { count } = await db().from("projects").select("id", { count: "exact", head: true }).eq("client_id", clientId);
+  if ((count ?? 0) > 0) return null;
+  const { data, error } = await db()
+    .from("projects")
+    .insert({ client_id: clientId, name: clientName.slice(0, 120), priority: "Medium", status: "Not Started" })
+    .select("project_code")
+    .single();
+  if (error) throw error;
+  return { code: data.project_code };
+}
+
 export async function saveClient(id: string | null, input: unknown): Promise<ActionResult> {
   const parsed = parseForm(clientSchema, input);
   if (!parsed.ok) return { ok: false, errors: parsed.errors };
   const data = { ...parsed.data, lost_reason: parsed.data.status === "Lost" ? parsed.data.lost_reason : null };
   try {
-    if (id) {
-      const { data: before } = await db().from("clients").select("status").eq("id", id).single();
-      const { data: row, error } = await db().from("clients").update(data).eq("id", id).select("id, client_code, name").single();
-      if (error) throw error;
-      refresh();
-      return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon: data.status === "Won" && before?.status !== "Won" };
-    }
-    const { data: row, error } = await db().from("clients").insert(data).select("id, client_code, name").single();
+    let before: { status: string } | null = null;
+    if (id) before = (await db().from("clients").select("status").eq("id", id).single()).data;
+    const q = id ? db().from("clients").update(data).eq("id", id) : db().from("clients").insert(data);
+    const { data: row, error } = await q.select("id, client_code, name").single();
     if (error) throw error;
+    const becameWon = data.status === "Won" && before?.status !== "Won";
+    const project = becameWon ? await ensureWonProject(row.id, row.name) : null;
     refresh();
-    return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon: data.status === "Won" };
+    return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon, projectCode: project?.code };
   } catch (e) {
     return fail(e);
   }
@@ -51,28 +63,52 @@ export async function saveClient(id: string | null, input: unknown): Promise<Act
 
 export async function setClientStatus(id: string, status: string): Promise<ActionResult> {
   if (!(CLIENT_STATUSES as readonly string[]).includes(status)) return { ok: false, error: "Unknown status" };
-  const { data: row, error } = await db().from("clients").update({ status }).eq("id", id).select("id, client_code, name").single();
-  if (error) return fail(error);
-  refresh();
-  return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon: status === "Won" };
+  try {
+    const { data: before } = await db().from("clients").select("status").eq("id", id).single();
+    const { data: row, error } = await db().from("clients").update({ status }).eq("id", id).select("id, client_code, name").single();
+    if (error) throw error;
+    const becameWon = status === "Won" && before?.status !== "Won";
+    const project = becameWon ? await ensureWonProject(row.id, row.name) : null;
+    refresh();
+    return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon, projectCode: project?.code };
+  } catch (e) {
+    return fail(e);
+  }
 }
 
-export async function deleteClient(id: string): Promise<ActionResult> {
-  const [{ count: projects }, { count: payments }] = await Promise.all([
+/** What deleting this client would also remove — shown in the confirm dialog. */
+export async function getClientDeleteImpact(id: string) {
+  const [{ count: projects }, { data: pays }] = await Promise.all([
     db().from("projects").select("id", { count: "exact", head: true }).eq("client_id", id),
-    db().from("payments").select("id", { count: "exact", head: true }).eq("client_id", id),
+    db().from("payments").select("amount").eq("client_id", id),
   ]);
-  if ((projects ?? 0) > 0 || (payments ?? 0) > 0) {
-    return {
-      ok: false,
-      suggestLost: true,
-      error: "This client has projects or payments, so it can't be deleted. Mark it as Lost instead.",
-    };
+  return {
+    projects: projects ?? 0,
+    payments: pays?.length ?? 0,
+    paymentsTotal: (pays ?? []).reduce((s, p) => s + Number(p.amount), 0),
+  };
+}
+
+/** Deletes the client together with its projects (and their files) and payments. */
+export async function deleteClient(id: string): Promise<ActionResult> {
+  try {
+    const { data: projects } = await db().from("projects").select("id").eq("client_id", id);
+    for (const p of projects ?? []) await removeProjectFiles(p.id);
+    const steps = [
+      db().from("payments").delete().eq("client_id", id),
+      db().from("projects").delete().eq("client_id", id),
+    ];
+    for (const step of steps) {
+      const { error } = await step;
+      if (error) throw error;
+    }
+    const { error } = await db().from("clients").delete().eq("id", id);
+    if (error) throw error;
+    refresh();
+    return { ok: true };
+  } catch (e) {
+    return fail(e);
   }
-  const { error } = await db().from("clients").delete().eq("id", id);
-  if (error) return fail(error);
-  refresh();
-  return { ok: true };
 }
 
 // ───────────────────────── Projects
@@ -112,6 +148,7 @@ export async function setProjectStatus(id: string, status: string): Promise<Acti
 }
 
 export async function deleteProject(id: string): Promise<ActionResult> {
+  await removeProjectFiles(id);
   const { error } = await db().from("projects").delete().eq("id", id);
   if (error) return fail(error);
   refresh();
@@ -215,4 +252,48 @@ export async function reorderTodos(
   } catch (e) {
     return fail(e);
   }
+}
+
+// ───────────────────────── Project files (Supabase Storage, private bucket)
+
+const BUCKET = "project-files";
+
+async function removeProjectFiles(projectId: string) {
+  const { data } = await db().from("project_files").select("path").eq("project_id", projectId);
+  const paths = (data ?? []).map((f) => f.path);
+  if (paths.length) await db().storage.from(BUCKET).remove(paths);
+}
+
+/** Returns a one-time signed URL the browser can upload one file to (no database key leaves the server). */
+export async function createProjectUpload(projectId: string, fileName: string): Promise<{ ok: boolean; error?: string; url?: string; path?: string }> {
+  const safe = fileName.replace(/[^\w.\- ]+/g, "_").slice(-120) || "file";
+  const path = `${projectId}/${crypto.randomUUID()}-${safe}`;
+  const { data, error } = await db().storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: error?.message ?? "Could not start upload" };
+  return { ok: true, url: data.signedUrl, path };
+}
+
+export async function registerProjectFile(projectId: string, f: { path: string; name: string; size: number; mime: string }): Promise<ActionResult> {
+  if (!f.path.startsWith(`${projectId}/`)) return { ok: false, error: "Invalid file" };
+  const { error } = await db().from("project_files").insert({ project_id: projectId, path: f.path, name: f.name.slice(0, 200), size: f.size, mime: f.mime || null });
+  if (error) return fail(error);
+  refresh();
+  return { ok: true };
+}
+
+export async function getProjectFileUrl(id: string): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const { data: f } = await db().from("project_files").select("path, name").eq("id", id).single();
+  if (!f) return { ok: false, error: "File not found" };
+  const { data, error } = await db().storage.from(BUCKET).createSignedUrl(f.path, 120, { download: f.name });
+  if (error || !data) return { ok: false, error: error?.message ?? "Could not open file" };
+  return { ok: true, url: data.signedUrl };
+}
+
+export async function deleteProjectFile(id: string): Promise<ActionResult> {
+  const { data: f } = await db().from("project_files").select("path").eq("id", id).single();
+  if (f) await db().storage.from(BUCKET).remove([f.path]);
+  const { error } = await db().from("project_files").delete().eq("id", id);
+  if (error) return fail(error);
+  refresh();
+  return { ok: true };
 }

@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, getToolName, isToolUIPart } from "ai";
-import { ArrowUp, Check, CircleAlert, Loader2, Mic, RotateCcw, Search, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, AudioLines, Check, CircleAlert, Loader2, Mic, RotateCcw, Search, Square, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -91,7 +91,7 @@ export function AgentPanel() {
           title="Ask the agent  ⌘J"
           className="fixed right-4 bottom-20 z-40 flex h-11 items-center gap-2 rounded-full bg-accent pr-4 pl-3.5 text-sm font-medium text-accent-fg shadow-[0_4px_16px_rgba(15,15,15,0.18)] transition-transform hover:scale-[1.03] md:right-6 md:bottom-6"
         >
-          <Sparkles size={17} /> Ask
+          <AudioLines size={17} /> Ask
         </button>
       )}
 
@@ -102,7 +102,7 @@ export function AgentPanel() {
           className="animate-slide-in fixed inset-0 z-50 flex flex-col bg-bg md:inset-y-0 md:right-0 md:left-auto md:w-[420px] md:border-l md:border-line md:shadow-[0_0_0_1px_rgba(15,15,15,0.04),0_8px_32px_rgba(15,15,15,0.12)]"
         >
           <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-4">
-            <Sparkles size={16} />
+            <AudioLines size={16} />
             <h2 className="text-[15px] font-semibold">Agent</h2>
             <span className="text-[12px] text-faint">⌘J</span>
             <div className="ml-auto flex items-center gap-0.5">

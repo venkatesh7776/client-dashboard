@@ -19,22 +19,20 @@ import { Pill } from "@/components/ui";
 import { CLIENT_STATUSES } from "@/lib/constants";
 import { fmtDate } from "@/lib/dates";
 import { cn, inr } from "@/lib/format";
-import type { Client, Option } from "@/lib/types";
+import type { Client } from "@/lib/types";
 
 export function ClientsBoard({
   clients,
   today,
   showLost,
-  wonOptions,
 }: {
   clients: Client[];
   today: string;
   showLost: boolean;
-  wonOptions: Option[];
 }) {
   const [items, setItems] = useState(clients);
   const [active, setActive] = useState<Client | null>(null);
-  const [won, setWon] = useState<{ id: string; label: string } | null>(null);
+  const [won, setWon] = useState<{ id: string; label: string; projectCode?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, start] = useTransition();
   useEffect(() => setItems(clients), [clients]);
@@ -59,7 +57,7 @@ export function ClientsBoard({
         setItems(prev);
         setError(r.error ?? "Could not update status");
       } else if (r.becameWon && r.id) {
-        setWon({ id: r.id, label: r.label ?? c.name });
+        setWon({ id: r.id, label: r.label ?? c.name, projectCode: r.projectCode });
       }
     });
   }
@@ -90,7 +88,7 @@ export function ClientsBoard({
         </div>
         <DragOverlay>{active ? <CardBody client={active} today={today} dragging /> : null}</DragOverlay>
       </DndContext>
-      <ClientSheet open={!!won} onClose={() => setWon(null)} wonOptions={wonOptions} initialWon={won} />
+      <ClientSheet open={!!won} onClose={() => setWon(null)} initialWon={won} />
     </>
   );
 }

@@ -4,81 +4,73 @@ import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sheet } from "@/components/sheet";
-import { Button } from "@/components/ui";
+import { Button, LinkButton } from "@/components/ui";
 import type { Client, Option, Payment, Project } from "@/lib/types";
 import { ClientForm } from "./forms/client-form";
 import { PaymentForm } from "./forms/payment-form";
 import { ProjectForm } from "./forms/project-form";
 
-type Won = { id: string; label: string };
+type Won = { id: string; label: string; projectCode?: string };
 
-/** Client create/edit; when a client becomes Won, offers "Create project" with it pre-selected (CL-4). */
+/** Client create/edit. When a client becomes Won, a project is auto-created; we point the user to it. */
 export function ClientSheet({
   open,
   onClose,
   client,
-  wonOptions,
   initialWon,
   defaultStatus,
-  onDeleted,
 }: {
   open: boolean;
   onClose: () => void;
   client?: Client | null;
-  wonOptions: Option[];
   initialWon?: Won | null;
   defaultStatus?: string;
-  onDeleted?: () => void;
 }) {
   const [won, setWon] = useState<Won | null>(initialWon ?? null);
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setWon(initialWon ?? null);
-      setCreating(false);
-    }
+    if (open) setWon(initialWon ?? null);
   }, [open, initialWon]);
 
-  const title = won ? (creating ? "New project" : "Client won") : client ? client.name : "New client";
-
   return (
-    <Sheet open={open} onClose={onClose} title={title}>
+    <Sheet open={open} onClose={onClose} title={won ? "Client won" : client ? client.name : "New client"}>
       {won ? (
-        creating ? (
-          <ProjectForm
-            clientOptions={wonOptions.some((o) => o.value === won.id) ? wonOptions : [{ value: won.id, label: won.label }, ...wonOptions]}
-            defaultClientId={won.id}
-            onSaved={onClose}
-            onCancel={onClose}
-          />
-        ) : (
-          <div className="space-y-5">
-            <p className="leading-relaxed">
-              <span className="font-medium">{won.label}</span> is now <span className="font-medium">Won</span>. Create a
-              project for this client?
-            </p>
-            <div className="flex gap-2">
-              <Button variant="primary" onClick={() => setCreating(true)}>
-                Create project
-              </Button>
-              <Button variant="ghost" onClick={onClose}>
-                Not now
-              </Button>
-            </div>
-          </div>
-        )
+        <WonNotice won={won} onClose={onClose} />
       ) : (
         <ClientForm
           key={client?.id ?? "new"}
           client={client}
           defaultStatus={defaultStatus}
-          onSaved={(r) => (r.becameWon && r.id ? setWon({ id: r.id, label: r.label ?? "This client" }) : onClose())}
+          onSaved={(r) => (r.becameWon && r.id ? setWon({ id: r.id, label: r.label ?? "This client", projectCode: r.projectCode }) : onClose())}
           onCancel={onClose}
-          onDeleted={onDeleted ?? onClose}
         />
       )}
     </Sheet>
+  );
+}
+
+export function WonNotice({ won, onClose }: { won: Won; onClose: () => void }) {
+  return (
+    <div className="space-y-5">
+      <p className="leading-relaxed">
+        <span className="font-medium">{won.label}</span> is now <span className="font-medium">Won</span>.
+        {won.projectCode ? (
+          <> Project <span className="tabular font-medium">{won.projectCode}</span> was created for it — open it to add the deadline and details.</>
+        ) : (
+          <> It already has a project.</>
+        )}
+      </p>
+      <div className="flex gap-2">
+        {won.projectCode && (
+          <LinkButton variant="primary" href={`/projects/${won.projectCode}`}>
+            Open project
+          </LinkButton>
+        )}
+        <Button variant="ghost" onClick={onClose}>
+          Done
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -163,14 +155,14 @@ function useNewParam(): [boolean, (v: boolean) => void] {
   ];
 }
 
-export function AddClientButton({ wonOptions, label = "New client" }: { wonOptions: Option[]; label?: string }) {
+export function AddClientButton({ label = "New client" }: { label?: string }) {
   const [open, setOpen] = useNewParam();
   return (
     <>
       <Button variant="primary" onClick={() => setOpen(true)}>
         <Plus size={15} /> {label}
       </Button>
-      <ClientSheet open={open} onClose={() => setOpen(false)} wonOptions={wonOptions} />
+      <ClientSheet open={open} onClose={() => setOpen(false)} />
     </>
   );
 }

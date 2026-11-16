@@ -43,14 +43,14 @@ export const projectSchema = z
   .object({
     client_id: z.string().min(1, "Select a client"),
     name: z.string().trim().min(1, "Project name is required").max(120, "Keep it under 120 characters"),
-    start_date: isoDate,
-    deadline: isoDate,
+    start_date: optDate,
+    deadline: optDate,
     priority: z.enum(PRIORITIES),
     status: z.enum(PROJECT_STATUSES),
     value: optMoney,
-    notes: optText(),
+    notes: optText(20000),
   })
-  .refine((p) => p.deadline >= p.start_date, {
+  .refine((p) => !p.deadline || !p.start_date || p.deadline >= p.start_date, {
     path: ["deadline"],
     message: "Deadline can't be before the start date",
   });

@@ -1,33 +1,35 @@
 import Link from "next/link";
+import { DeleteProjectButton } from "@/components/delete-buttons";
 import { FilterBar } from "@/components/filter-bar";
 import { AddProjectButton } from "@/components/panels";
 import { DaysLeft, TimelineTag } from "@/components/project-bits";
 import { ProjectStatusSelect } from "@/components/status-select";
 import { Empty, PageHeader, PriorityDot, Table, Td, Th } from "@/components/ui";
+import { ViewTabs } from "@/components/view-tabs";
 import { PRIORITIES, PROJECT_STATUSES, TIMELINE_TAGS } from "@/lib/constants";
 import { getClientOptions, getProjects } from "@/lib/data";
 import { fmtDate } from "@/lib/dates";
+import { ProjectsBoard } from "./projects-board";
 
 type SP = Promise<Record<string, string | undefined>>;
 
 export default async function ProjectsPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
+  const view = sp.view === "table" ? "table" : "board";
+  const showClosed = sp.all === "1";
   const [projects, wonOptions, allClients] = await Promise.all([
-    getProjects({ status: sp.status, priority: sp.priority, client: sp.client, tag: sp.tag, all: sp.all === "1" }),
+    getProjects({ status: sp.status, priority: sp.priority, client: sp.client, tag: sp.tag, all: showClosed }),
     getClientOptions("won"),
     getClientOptions("all"),
   ]);
 
   return (
     <>
-      <PageHeader
-        title="Projects"
-        description="When to start, and when it's due."
-        actions={<AddProjectButton clientOptions={wonOptions} />}
-      />
+      <PageHeader title="Projects" description="When to start, and when it's due." actions={<AddProjectButton clientOptions={wonOptions} />} />
+      <ViewTabs base="/projects" view={view} params={sp} />
       <FilterBar
         filters={[
-          { key: "status", label: "Status", options: [...PROJECT_STATUSES] },
+          ...(view === "table" ? [{ key: "status", label: "Status", options: [...PROJECT_STATUSES] }] : []),
           { key: "priority", label: "Priority", options: [...PRIORITIES] },
           { key: "client", label: "Client", options: allClients.map((o) => ({ value: o.label.split(" · ")[0], label: o.label })) },
           { key: "tag", label: "Timeline", options: [...TIMELINE_TAGS] },
@@ -35,9 +37,11 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
         toggles={[{ key: "all", label: "Show completed & cancelled" }]}
       />
 
-      {projects.length === 0 ? (
+      {view === "board" ? (
+        <ProjectsBoard projects={projects} showClosed={showClosed} />
+      ) : projects.length === 0 ? (
         <Empty
-          message={wonOptions.length ? "No projects here yet." : "No projects yet. Mark a client as Won, then add a project."}
+          message={wonOptions.length ? "No projects here yet." : "No projects yet. Mark a client as Won and its project is created for you."}
           action={<AddProjectButton clientOptions={wonOptions} label="Add project" urlDriven={false} />}
         />
       ) : (
@@ -53,11 +57,12 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
               <Th>Priority</Th>
               <Th>Status</Th>
               <Th>Timeline</Th>
+              <Th className="w-10" />
             </tr>
           </thead>
           <tbody>
             {projects.map((p) => (
-              <tr key={p.id}>
+              <tr key={p.id} className="group">
                 <Td className="tabular text-muted">{p.project_code}</Td>
                 <Td>
                   <Link href={`/projects/${p.project_code}`} className="font-medium hover:underline">
@@ -81,7 +86,10 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
                   <ProjectStatusSelect key={p.status} id={p.id} status={p.status} />
                 </Td>
                 <Td>
-                  <TimelineTag tag={p.timeline_tag} />
+                  <TimelineTag tag={p.timeline_tag} noDeadline={!p.deadline && !["Completed", "Cancelled"].includes(p.status)} />
+                </Td>
+                <Td className="w-10 px-1">
+                  <DeleteProjectButton id={p.id} label={`${p.project_code} · ${p.name}`} icon />
                 </Td>
               </tr>
             ))}

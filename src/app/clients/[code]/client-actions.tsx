@@ -1,8 +1,8 @@
 "use client";
 
 import { Pencil } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DeleteClientButton } from "@/components/delete-buttons";
 import { AddPaymentButton, AddProjectButton, ClientSheet } from "@/components/panels";
 import { Button } from "@/components/ui";
 import type { Client, Option } from "@/lib/types";
@@ -17,7 +17,6 @@ export function ClientActions({
   paymentOptions: Option[];
 }) {
   const [open, setOpen] = useState(false);
-  const router = useRouter();
   return (
     <>
       <Button onClick={() => setOpen(true)}>
@@ -29,13 +28,8 @@ export function ClientActions({
       {client.status !== "Lost" && (
         <AddPaymentButton clientOptions={paymentOptions} defaultClientId={client.id} label="Payment" variant="primary" urlDriven={false} />
       )}
-      <ClientSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        client={client}
-        wonOptions={wonOptions}
-        onDeleted={() => router.push("/clients")}
-      />
+      <DeleteClientButton id={client.id} label={`${client.client_code} · ${client.name}`} redirectTo="/clients" />
+      <ClientSheet open={open} onClose={() => setOpen(false)} client={client} />
     </>
   );
 }
