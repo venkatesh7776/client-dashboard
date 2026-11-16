@@ -18,5 +18,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!unlock|api/cron|_next/static|_next/image|icon.svg|robots.txt).*)"],
+  // Static assets (favicon, logo) must load on the passcode screen too.
+  matcher: ["/((?!unlock|api/cron|_next/static|_next/image|robots.txt|.*\\.(?:png|svg|ico|jpg|jpeg|webp)$).*)"],
 };
