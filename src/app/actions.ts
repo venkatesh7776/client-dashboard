@@ -297,3 +297,13 @@ export async function deleteProjectFile(id: string): Promise<ActionResult> {
   refresh();
   return { ok: true };
 }
+
+/** Inline edit of a single project field from a list or property panel. */
+export async function updateProjectField(
+  id: string,
+  patch: Partial<{ start_date: string | null; deadline: string | null; priority: string; value: number | null }>,
+): Promise<ActionResult> {
+  const { data: cur, error } = await db().from("projects").select("client_id, name, start_date, deadline, priority, status, value, notes").eq("id", id).single();
+  if (error || !cur) return { ok: false, error: "Project not found" };
+  return saveProject(id, { ...cur, ...patch });
+}

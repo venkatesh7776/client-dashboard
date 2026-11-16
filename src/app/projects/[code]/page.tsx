@@ -6,7 +6,8 @@ import { TimelineTag } from "@/components/project-bits";
 import { Properties } from "@/components/property-list";
 import { ProjectStatusSelect } from "@/components/status-select";
 import { TodoList } from "@/components/todo-list";
-import { Empty, PriorityDot, Section, Stat } from "@/components/ui";
+import { InlineProjectDate, InlineProjectPriority } from "@/components/inline-edit";
+import { Empty, Section, Stat } from "@/components/ui";
 import { getClientOptions, getProjectByCode, getProjectFiles, getProjectTodos } from "@/lib/data";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inr } from "@/lib/format";
@@ -79,9 +80,9 @@ export default async function ProjectDetail({ params }: { params: Promise<{ code
                   <span className="tabular text-muted">{project.client_code}</span> · {project.client_name}
                 </Link>,
               ],
-              ["Start date", project.start_date ? <span className="tabular">{fmtDate(project.start_date)}</span> : null],
-              ["Deadline", project.deadline ? <span className="tabular">{fmtDate(project.deadline)}</span> : null],
-              ["Priority", <PriorityDot key="p" priority={project.priority} withLabel />],
+              ["Start date", <InlineProjectDate key={`s${project.start_date}`} id={project.id} field="start_date" value={project.start_date} max={project.deadline} />],
+              ["Deadline", <InlineProjectDate key={`d${project.deadline}`} id={project.id} field="deadline" value={project.deadline} min={project.start_date} />],
+              ["Priority", <InlineProjectPriority key={`p${project.priority}`} id={project.id} value={project.priority} />],
               ["Value", project.value != null ? <span className="tabular">{inr(project.value)}</span> : null],
             ]}
           />

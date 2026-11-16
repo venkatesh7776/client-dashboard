@@ -4,11 +4,11 @@ import { FilterBar } from "@/components/filter-bar";
 import { AddProjectButton } from "@/components/panels";
 import { DaysLeft, TimelineTag } from "@/components/project-bits";
 import { ProjectStatusSelect } from "@/components/status-select";
-import { Empty, PageHeader, PriorityDot, Table, Td, Th } from "@/components/ui";
+import { InlineProjectDate, InlineProjectPriority } from "@/components/inline-edit";
+import { Empty, PageHeader, Table, Td, Th } from "@/components/ui";
 import { ViewTabs } from "@/components/view-tabs";
 import { PRIORITIES, PROJECT_STATUSES, TIMELINE_TAGS } from "@/lib/constants";
 import { getClientOptions, getProjects } from "@/lib/data";
-import { fmtDate } from "@/lib/dates";
 import { ProjectsBoard } from "./projects-board";
 
 type SP = Promise<Record<string, string | undefined>>;
@@ -74,13 +74,17 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
                     <span className="tabular text-muted">{p.client_code}</span> {p.client_name}
                   </Link>
                 </Td>
-                <Td className="tabular text-muted">{fmtDate(p.start_date)}</Td>
-                <Td className="tabular">{fmtDate(p.deadline)}</Td>
+                <Td className="text-muted">
+                  <InlineProjectDate key={`s${p.start_date}`} id={p.id} field="start_date" value={p.start_date} max={p.deadline} />
+                </Td>
+                <Td>
+                  <InlineProjectDate key={`d${p.deadline}`} id={p.id} field="deadline" value={p.deadline} min={p.start_date} />
+                </Td>
                 <Td>
                   <DaysLeft days={p.days_left} status={p.status} />
                 </Td>
                 <Td>
-                  <PriorityDot priority={p.priority} withLabel />
+                  <InlineProjectPriority key={p.priority} id={p.id} value={p.priority} />
                 </Td>
                 <Td>
                   <ProjectStatusSelect key={p.status} id={p.id} status={p.status} />
