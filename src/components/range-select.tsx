@@ -26,7 +26,7 @@ export function RangeSelect({
         start(() => router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false }));
       }}
       className={cn(
-        "h-8 max-w-[220px] cursor-pointer rounded-md border border-line bg-bg px-2 text-[13px] font-medium outline-none hover:bg-hover",
+        "h-7 max-w-[240px] cursor-pointer rounded-[5px] border-0 bg-transparent px-1.5 text-[14px] text-muted outline-none hover:bg-hover hover:text-fg",
         pending && "opacity-60",
       )}
     >

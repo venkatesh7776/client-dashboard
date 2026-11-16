@@ -43,13 +43,13 @@ export function FilterBar({
   return (
     <div className={cn("mb-4 flex flex-wrap items-center gap-2 transition-opacity", pending && "opacity-60")}>
       {search !== undefined && (
-        <div className="relative w-full sm:w-64">
+        <div className="relative w-full sm:w-56">
           <Search size={15} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-faint" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={search}
-            className="h-8 w-full rounded-md border border-line-strong bg-bg pr-2.5 pl-8 text-sm outline-none placeholder:text-faint focus:border-[#2383e2] focus:ring-2 focus:ring-[#2383e2]/20"
+            className="h-7 w-full rounded-[5px] border-0 bg-hover pr-2.5 pl-8 text-[14px] outline-none placeholder:text-faint focus:ring-2 focus:ring-[#2383e2]/30"
           />
         </div>
       )}
@@ -62,8 +62,8 @@ export function FilterBar({
             onChange={(e) => set(f.key, e.target.value || null)}
             aria-label={f.label}
             className={cn(
-              "h-8 max-w-48 cursor-pointer rounded-md border px-2 text-sm outline-none",
-              value ? "border-line-strong bg-active text-fg" : "border-line bg-bg text-muted hover:bg-hover",
+              "h-7 max-w-48 cursor-pointer rounded-[5px] border-0 px-1.5 text-[14px] outline-none",
+              value ? "bg-[var(--tag-blue-bg)] text-[var(--tag-blue-fg)]" : "bg-transparent text-muted hover:bg-hover",
             )}
           >
             <option value="">{f.label}</option>
@@ -81,7 +81,7 @@ export function FilterBar({
       {toggles.map((t) => {
         const on = params.get(t.key) === "1";
         return (
-          <label key={t.key} className="flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-muted hover:bg-hover">
+          <label key={t.key} className="flex h-7 cursor-pointer items-center gap-2 rounded-[5px] px-1.5 text-[14px] text-muted hover:bg-hover">
             <input type="checkbox" checked={on} onChange={() => set(t.key, on ? null : "1")} className="accent-[var(--accent)]" />
             {t.label}
           </label>

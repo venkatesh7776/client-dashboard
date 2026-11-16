@@ -66,6 +66,7 @@ export function ClientsBoard({
     <>
       {error && <p className="mb-3 text-[13px] text-danger">{error}</p>}
       <DndContext
+        id="clients-board"
         sensors={sensors}
         onDragStart={(e) => setActive(items.find((x) => x.id === e.active.id) ?? null)}
         onDragEnd={onDragEnd}

@@ -22,7 +22,7 @@ export default async function MonthPage({ params }: { params: Promise<{ month: s
         <ChevronLeft size={14} /> Payments
       </Link>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[28px] font-bold tracking-tight sm:text-[32px]">{monthLabel(first)}</h1>
+        <h1 className="text-[30px] leading-tight font-bold tracking-[-0.02em] sm:text-[36px]">{monthLabel(first)}</h1>
         <div className="flex gap-1">
           <Link href={`/payments/${prev}`} className="rounded-md p-1.5 text-muted hover:bg-hover hover:text-fg" aria-label="Previous month">
             <ChevronLeft size={18} />

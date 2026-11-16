@@ -13,7 +13,10 @@ export default async function TodosPage() {
   ]);
   return (
     <>
-      <PageHeader title="To-dos" description="Plan today, tomorrow, the day after, and later." />
+      <PageHeader
+        title="To-dos"
+        description={`${todos.filter((t) => !t.is_done && t.due_date && t.due_date <= today).length} open today · ${todos.filter((t) => !t.is_done).length} open in total`}
+      />
       <TodoBoard todos={todos} today={today} followUps={followUps} projectOptions={projectOptions} />
       <MidnightRefresh today={today} />
     </>

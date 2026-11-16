@@ -35,7 +35,7 @@ export function PriorityDot({ priority, withLabel }: { priority?: string | null;
 
 type BtnVariant = "primary" | "ghost" | "outline" | "danger";
 const btn: Record<BtnVariant, string> = {
-  primary: "bg-accent text-accent-fg hover:opacity-90",
+  primary: "bg-accent text-accent-fg hover:opacity-85",
   ghost: "text-muted hover:bg-hover hover:text-fg",
   outline: "border border-line-strong text-fg hover:bg-hover",
   danger: "text-danger hover:bg-[var(--tag-red-bg)]",
@@ -43,9 +43,9 @@ const btn: Record<BtnVariant, string> = {
 
 export function buttonClass(variant: BtnVariant = "outline", size: "sm" | "md" = "md") {
   return cn(
-    "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors select-none",
+    "inline-flex items-center justify-center gap-1.5 rounded-[5px] font-medium transition-colors select-none",
     "disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2383e2]",
-    size === "sm" ? "h-7 px-2 text-[13px]" : "h-8 px-3 text-sm",
+    size === "sm" ? "h-7 px-2 text-[13px]" : "h-8 px-2.5 text-[14px]",
     btn[variant],
   );
 }
@@ -120,8 +120,8 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-[28px] font-bold tracking-tight text-fg sm:text-[32px]">{title}</h1>
-        {description && <p className="mt-1 text-muted">{description}</p>}
+        <h1 className="text-[30px] leading-tight font-bold tracking-[-0.02em] text-fg sm:text-[36px]">{title}</h1>
+        {description && <p className="tabular mt-1.5 text-[14px] text-muted">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -140,12 +140,12 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-lg border border-line bg-bg", className)}>
-      <div className="flex min-h-11 items-center justify-between gap-2 border-b border-line px-4 py-2">
-        <h2 className="text-sm font-semibold text-fg">{title}</h2>
+    <section className={cn("min-w-0", className)}>
+      <div className="flex min-h-9 items-center justify-between gap-2 border-b border-line pb-1.5">
+        <h2 className="text-[14px] font-semibold text-fg">{title}</h2>
         {action}
       </div>
-      <div>{children}</div>
+      <div className="pt-1">{children}</div>
     </section>
   );
 }
@@ -161,9 +161,9 @@ export function Empty({ message, action }: { message: string; action?: ReactNode
 
 export function Stat({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-line p-4">
+    <div className="border-l border-line pl-4">
       <div className="text-[13px] text-muted">{label}</div>
-      <div className="tabular mt-1.5 text-2xl font-semibold tracking-tight text-fg">{value}</div>
+      <div className="tabular mt-1 text-[22px] font-semibold tracking-tight text-fg">{value}</div>
       {sub && <div className="mt-1 text-[13px] text-muted">{sub}</div>}
     </div>
   );

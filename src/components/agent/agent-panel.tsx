@@ -89,9 +89,9 @@ export function AgentPanel() {
           onClick={() => setOpen(true)}
           aria-label="Open agent (⌘J)"
           title="Ask the agent  ⌘J"
-          className="fixed right-4 bottom-20 z-40 flex h-11 items-center gap-2 rounded-full bg-accent pr-4 pl-3.5 text-sm font-medium text-accent-fg shadow-[0_4px_16px_rgba(15,15,15,0.18)] transition-transform hover:scale-[1.03] md:right-6 md:bottom-6"
+          className="fixed right-4 bottom-20 z-40 flex h-9 items-center gap-1.5 rounded-full border border-line-strong bg-bg pr-3.5 pl-3 text-[14px] font-medium text-fg shadow-[0_2px_8px_rgba(15,15,15,0.08)] transition-colors hover:bg-soft md:right-6 md:bottom-6"
         >
-          <AudioLines size={17} /> Ask
+          <AudioLines size={15} strokeWidth={1.8} /> Ask
         </button>
       )}
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { ActionResult } from "@/app/actions";
 import { Sheet } from "@/components/sheet";
+import { notify } from "@/components/toast";
 import { Button, LinkButton } from "@/components/ui";
 import type { Client, Option, Payment, Project } from "@/lib/types";
 import { ClientForm } from "./forms/client-form";
@@ -12,7 +13,13 @@ import { ProjectForm } from "./forms/project-form";
 
 type Won = { id: string; label: string; projectCode?: string };
 
-/** Client create/edit. When a client becomes Won, a project is auto-created; we point the user to it. */
+function announceDelivered(r: ActionResult) {
+  if (!r.delivered) return;
+  const p = r.delivered.projects;
+  notify(`Fully paid — ${r.delivered.client} moved to Delivered${p.length ? `, ${p.join(", ")} completed` : ""}.`);
+}
+
+/** Client create/edit. When a client becomes Closed, a project is auto-created; we point the user to it. */
 export function ClientSheet({
   open,
   onClose,
@@ -33,7 +40,7 @@ export function ClientSheet({
   }, [open, initialWon]);
 
   return (
-    <Sheet open={open} onClose={onClose} title={won ? "Client won" : client ? client.name : "New client"}>
+    <Sheet open={open} onClose={onClose} title={won ? "Deal closed" : client ? client.name : "New client"}>
       {won ? (
         <WonNotice won={won} onClose={onClose} />
       ) : (
@@ -53,7 +60,7 @@ export function WonNotice({ won, onClose }: { won: Won; onClose: () => void }) {
   return (
     <div className="space-y-5">
       <p className="leading-relaxed">
-        <span className="font-medium">{won.label}</span> is now <span className="font-medium">Won</span>.
+        <span className="font-medium">{won.label}</span> is now <span className="font-medium">Closed</span>.
         {won.projectCode ? (
           <> Project <span className="tabular font-medium">{won.projectCode}</span> was created for it — open it to add the deadline and details.</>
         ) : (
@@ -96,7 +103,10 @@ export function ProjectSheet({
         project={project}
         clientOptions={clientOptions}
         defaultClientId={defaultClientId}
-        onSaved={onClose}
+        onSaved={(r) => {
+          announceDelivered(r);
+          onClose();
+        }}
         onCancel={onClose}
         onDeleted={onDeleted ?? onClose}
       />
@@ -124,7 +134,10 @@ export function PaymentSheet({
         payment={payment}
         clientOptions={clientOptions}
         defaultClientId={defaultClientId}
-        onSaved={onClose}
+        onSaved={(r) => {
+          announceDelivered(r);
+          onClose();
+        }}
         onCancel={onClose}
         onDeleted={onClose}
       />
@@ -160,7 +173,7 @@ export function AddClientButton({ label = "New client" }: { label?: string }) {
   return (
     <>
       <Button variant="primary" onClick={() => setOpen(true)}>
-        <Plus size={15} /> {label}
+        {label}
       </Button>
       <ClientSheet open={open} onClose={() => setOpen(false)} />
     </>
@@ -190,7 +203,7 @@ export function AddProjectButton({
   return (
     <>
       <Button variant={variant} onClick={() => setOpen(true)}>
-        <Plus size={15} /> {label}
+        {label}
       </Button>
       <ProjectSheet open={open} onClose={() => setOpen(false)} clientOptions={clientOptions} defaultClientId={preset} />
     </>
@@ -217,7 +230,7 @@ export function AddPaymentButton({
   return (
     <>
       <Button variant={variant} onClick={() => setOpen(true)}>
-        <Plus size={15} /> {label}
+        {label}
       </Button>
       <PaymentSheet open={open} onClose={() => setOpen(false)} clientOptions={clientOptions} defaultClientId={defaultClientId} />
     </>

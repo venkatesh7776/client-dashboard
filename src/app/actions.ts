@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/supabase";
 import { clientSchema, paymentSchema, parseForm, projectSchema, todoSchema, type FieldErrors } from "@/lib/schemas";
-import { PROJECT_STATUSES, CLIENT_STATUSES } from "@/lib/constants";
+import { CLIENT_STATUSES, PROJECT_CLIENT_STATUSES, PROJECT_STATUSES } from "@/lib/constants";
 
 export type ActionResult = {
   ok: boolean;
@@ -15,6 +15,7 @@ export type ActionResult = {
   becameWon?: boolean;
   projectCode?: string;
   suggestLost?: boolean;
+  delivered?: { client: string; projects: string[] };
 };
 
 function refresh() {
@@ -29,7 +30,7 @@ function fail(e: unknown): ActionResult {
 
 // ───────────────────────── Clients
 
-/** When a client becomes Won and has no project yet, create one (no dates) so it can be filled in later. */
+/** When a client becomes Closed and has no project yet, create one (no dates) so it can be filled in later. */
 async function ensureWonProject(clientId: string, clientName: string): Promise<{ code: string } | null> {
   const { count } = await db().from("projects").select("id", { count: "exact", head: true }).eq("client_id", clientId);
   if ((count ?? 0) > 0) return null;
@@ -52,7 +53,7 @@ export async function saveClient(id: string | null, input: unknown): Promise<Act
     const q = id ? db().from("clients").update(data).eq("id", id) : db().from("clients").insert(data);
     const { data: row, error } = await q.select("id, client_code, name").single();
     if (error) throw error;
-    const becameWon = data.status === "Won" && before?.status !== "Won";
+    const becameWon = data.status === "Closed" && before?.status !== "Closed" && before?.status !== "Delivered";
     const project = becameWon ? await ensureWonProject(row.id, row.name) : null;
     refresh();
     return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon, projectCode: project?.code };
@@ -67,7 +68,7 @@ export async function setClientStatus(id: string, status: string): Promise<Actio
     const { data: before } = await db().from("clients").select("status").eq("id", id).single();
     const { data: row, error } = await db().from("clients").update({ status }).eq("id", id).select("id, client_code, name").single();
     if (error) throw error;
-    const becameWon = status === "Won" && before?.status !== "Won";
+    const becameWon = status === "Closed" && before?.status !== "Closed" && before?.status !== "Delivered";
     const project = becameWon ? await ensureWonProject(row.id, row.name) : null;
     refresh();
     return { ok: true, id: row.id, code: row.client_code, label: `${row.client_code} · ${row.name}`, becameWon, projectCode: project?.code };
@@ -111,13 +112,38 @@ export async function deleteClient(id: string): Promise<ActionResult> {
   }
 }
 
+// ───────────────────────── Auto-delivery
+
+/**
+ * When everything a Closed client owes has been received (payments ≥ total value of its
+ * non-cancelled projects), mark the client Delivered and its open projects Completed.
+ */
+async function settleIfFullyPaid(clientId: string): Promise<ActionResult["delivered"]> {
+  const [{ data: c }, { data: projects }, { data: pays }] = await Promise.all([
+    db().from("clients").select("client_code, name, status").eq("id", clientId).single(),
+    db().from("projects").select("id, project_code, status, value").eq("client_id", clientId),
+    db().from("payments").select("amount").eq("client_id", clientId),
+  ]);
+  if (!c || c.status !== "Closed") return undefined;
+  const active = (projects ?? []).filter((p) => p.status !== "Cancelled");
+  const target = active.reduce((s, p) => s + Number(p.value ?? 0), 0);
+  if (target <= 0) return undefined;
+  const received = (pays ?? []).reduce((s, p) => s + Number(p.amount), 0);
+  if (received + 0.005 < target) return undefined;
+
+  await db().from("clients").update({ status: "Delivered" }).eq("id", clientId);
+  const toComplete = active.filter((p) => p.status !== "Completed");
+  if (toComplete.length) await db().from("projects").update({ status: "Completed" }).in("id", toComplete.map((p) => p.id));
+  return { client: `${c.client_code} · ${c.name}`, projects: toComplete.map((p) => p.project_code) };
+}
+
 // ───────────────────────── Projects
 
 export async function saveProject(id: string | null, input: unknown): Promise<ActionResult> {
   const parsed = parseForm(projectSchema, input);
   if (!parsed.ok) return { ok: false, errors: parsed.errors };
   try {
-    // Only Won clients can get new projects (an existing project may keep its client).
+    // Only Closed/Delivered clients can get new projects (an existing project may keep its client).
     let mustBeWon = !id;
     if (id) {
       const { data: cur } = await db().from("projects").select("client_id").eq("id", id).single();
@@ -125,15 +151,16 @@ export async function saveProject(id: string | null, input: unknown): Promise<Ac
     }
     if (mustBeWon) {
       const { data: c } = await db().from("clients").select("status").eq("id", parsed.data.client_id).single();
-      if (c?.status !== "Won") return { ok: false, errors: { client_id: "Only Won clients can have projects" } };
+      if (!PROJECT_CLIENT_STATUSES.includes(c?.status ?? "")) return { ok: false, errors: { client_id: "Only Closed or Delivered clients can have projects" } };
     }
     const q = id
       ? db().from("projects").update(parsed.data).eq("id", id)
       : db().from("projects").insert(parsed.data);
     const { data: row, error } = await q.select("id, project_code").single();
     if (error) throw error;
+    const delivered = await settleIfFullyPaid(parsed.data.client_id);
     refresh();
-    return { ok: true, id: row.id, code: row.project_code };
+    return { ok: true, id: row.id, code: row.project_code, delivered };
   } catch (e) {
     return fail(e);
   }
@@ -169,8 +196,9 @@ export async function savePayment(id: string | null, input: unknown): Promise<Ac
       : db().from("payments").insert(parsed.data);
     const { data: row, error } = await q.select("id, payment_code").single();
     if (error) throw error;
+    const delivered = await settleIfFullyPaid(parsed.data.client_id);
     refresh();
-    return { ok: true, id: row.id, code: row.payment_code };
+    return { ok: true, id: row.id, code: row.payment_code, delivered };
   } catch (e) {
     return fail(e);
   }

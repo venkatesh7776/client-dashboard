@@ -19,13 +19,16 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
   const showClosed = sp.all === "1";
   const [projects, wonOptions, allClients] = await Promise.all([
     getProjects({ status: sp.status, priority: sp.priority, client: sp.client, tag: sp.tag, all: showClosed }),
-    getClientOptions("won"),
+    getClientOptions("closed"),
     getClientOptions("all"),
   ]);
 
   return (
     <>
-      <PageHeader title="Projects" description="When to start, and when it's due." actions={<AddProjectButton clientOptions={wonOptions} />} />
+      <PageHeader
+        title="Projects"
+        description={`${projects.filter((p) => !["Completed", "Cancelled"].includes(p.status)).length} open · ${projects.filter((p) => p.timeline_tag === "Overdue" || p.timeline_tag === "Due Soon").length} due this week · ${projects.filter((p) => !p.deadline && !["Completed", "Cancelled"].includes(p.status)).length} without a deadline`}
+        actions={<AddProjectButton clientOptions={wonOptions} />} />
       <ViewTabs base="/projects" view={view} params={sp} />
       <FilterBar
         filters={[
@@ -41,7 +44,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: SP 
         <ProjectsBoard projects={projects} showClosed={showClosed} />
       ) : projects.length === 0 ? (
         <Empty
-          message={wonOptions.length ? "No projects here yet." : "No projects yet. Mark a client as Won and its project is created for you."}
+          message={wonOptions.length ? "No projects here yet." : "No projects yet. Mark a client as Closed and its project is created for you."}
           action={<AddProjectButton clientOptions={wonOptions} label="Add project" urlDriven={false} />}
         />
       ) : (

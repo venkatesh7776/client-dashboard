@@ -22,7 +22,7 @@ export function ClientActions({
       <Button onClick={() => setOpen(true)}>
         <Pencil size={14} /> Edit
       </Button>
-      {client.status === "Won" && (
+      {["Closed", "Delivered"].includes(client.status) && (
         <AddProjectButton clientOptions={wonOptions} defaultClientId={client.id} label="Project" variant="outline" urlDriven={false} />
       )}
       {client.status !== "Lost" && (

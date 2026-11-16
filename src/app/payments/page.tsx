@@ -26,7 +26,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: SP 
 
   return (
     <>
-      <PageHeader title="Payments" description="Every rupee received, by client and by month." actions={<AddPaymentButton clientOptions={options} />} />
+      <PageHeader
+        title="Payments"
+        description={`${inr(allMonths.find((m) => m.month === todayIST().slice(0, 8) + "01")?.total ?? 0)} received this month · ${inr(months.reduce((s, m) => s + m.total, 0))} in ${year}`}
+        actions={<AddPaymentButton clientOptions={options} />} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_minmax(0,380px)]">
         <Section

@@ -193,7 +193,7 @@ const tools = {
   }),
 
   addProject: tool({
-    description: "Create an additional project for a Won client. Dates are optional — leave them out if the user didn't give them.",
+    description: "Create an additional project for a Closed or Delivered client. Dates are optional — leave them out if the user didn't give them.",
     inputSchema: z.object({
       client: z.string().describe("Client ID or name"),
       name: z.string(),
@@ -207,8 +207,8 @@ const tools = {
     execute: async ({ client, ...p }) => {
       const r = await resolveClient(client);
       if (!r.client) return { ok: false, kind: "write" as const, error: r.error, matches: r.matches };
-      if (r.client.status !== "Won")
-        return { ok: false, kind: "write" as const, error: `${r.client.client_code} · ${r.client.name} is ${r.client.status}, not Won. Projects need a Won client — ask whether to mark it Won first.` };
+      if (!["Closed", "Delivered"].includes(r.client.status))
+        return { ok: false, kind: "write" as const, error: `${r.client.client_code} · ${r.client.name} is ${r.client.status}, not Closed. Projects need a Closed client — ask whether to mark it Closed first.` };
       const s = await saveProject(null, { client_id: r.client.id, priority: "Medium", status: "Not Started", ...p });
       if (!s.ok) return fail(s);
       return done(`Added ${s.code} · ${p.name} for ${r.client.client_code}${p.deadline ? `, due ${fmtDate(p.deadline)}` : " (no deadline yet)"}`, `/projects/${s.code}`);
@@ -261,7 +261,8 @@ const tools = {
         client_id: r.client.id, amount: Math.round(amount * 100) / 100, payment_date: payment_date ?? todayIST(), mode, notes,
       });
       if (!s.ok) return fail(s);
-      return done(`Recorded ${s.code} · ${inr(amount)} from ${r.client.client_code} · ${r.client.name}`, `/clients/${r.client.client_code}`);
+      const fully = s.delivered ? ` · fully paid, so ${r.client.client_code} is now Delivered${s.delivered.projects.length ? ` and ${s.delivered.projects.join(", ")} Completed` : ""}` : "";
+      return done(`Recorded ${s.code} · ${inr(amount)} from ${r.client.client_code} · ${r.client.name}${fully}`, `/clients/${r.client.client_code}`);
     },
   }),
 
@@ -421,8 +422,10 @@ How to work:
 - Refer to clients by name or Client ID; the tools resolve them. If a tool says several match or none match, ask a short question.
 - Never invent IDs or numbers. Only report what tools returned.
 - Money is Indian Rupees. "20k" = 20000, "1.5 lakh" = 150000, "2 cr" = 20000000. Write amounts like ₹1,20,000.
-- When a client becomes Won (on create or status change), the app automatically creates one project named after the client with no dates. Don't create a duplicate: if the user gives project details (name, deadline, value, description) for a client that just became Won, update that auto-created project with updateProject instead.
-- Projects need a Won client. Dates are optional; never ask for a deadline just to create a project.
+- Client statuses: Lead → Contacted → Proposal Sent → Closed (deal won) → Delivered (fully paid) / Lost. If the user says "won", "closed" or "confirmed", use Closed.
+- When a client becomes Closed (on create or status change), the app automatically creates one project named after the client with no dates. Don't create a duplicate: if the user gives project details (name, deadline, value, description) for a client that just became Closed, update that auto-created project with updateProject instead.
+- When payments from a Closed client add up to the total value of its projects, the app automatically marks the client Delivered and its projects Completed. Mention it if a tool result says so.
+- Projects need a Closed or Delivered client. Dates are optional; never ask for a deadline just to create a project.
 - You cannot delete anything. If asked, say they can delete it from the item's page or the trash icon in the list.
 - The owner may speak Hinglish or mix Telugu/Hindi with English, and voice transcripts can mishear names — match names loosely via the search tools.
 

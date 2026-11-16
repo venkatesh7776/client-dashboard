@@ -35,7 +35,7 @@ export function ProjectForm({
     onSaved,
   );
 
-  // An existing project keeps its client in the list even if that client is no longer Won.
+  // An existing project keeps its client in the list even if that client is no longer Closed.
   const options =
     project && !clientOptions.some((o) => o.value === project.client_id)
       ? [{ value: project.client_id, label: `${project.client_code} · ${project.client_name}` }, ...clientOptions]
@@ -63,7 +63,7 @@ export function ProjectForm({
         label="Client"
         required
         error={errors.client_id}
-        hint={options.length === 0 ? "No Won clients yet. Mark a client as Won first." : "Only Won clients are listed"}
+        hint={options.length === 0 ? "No closed clients yet. Mark a client as Closed first." : "Closed and Delivered clients"}
       >
         <Select name="client_id" defaultValue={project?.client_id ?? defaultClientId ?? ""}>
           <option value="">Select a client…</option>

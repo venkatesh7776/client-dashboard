@@ -26,16 +26,16 @@ export async function getClientByCode(code: string) {
   return check(await db().from("clients").select("*").eq("client_code", code).maybeSingle()) as Client | null;
 }
 
-export async function getClientOptions(kind: "won" | "notLost" | "all"): Promise<Option[]> {
+export async function getClientOptions(kind: "closed" | "notLost" | "all"): Promise<Option[]> {
   let q = db().from("clients").select("id, client_code, name, status").order("client_code").limit(5000);
-  if (kind === "won") q = q.eq("status", "Won");
+  if (kind === "closed") q = q.in("status", ["Closed", "Delivered"]);
   if (kind === "notLost") q = q.neq("status", "Lost");
   const rows = check(await q) as { id: string; client_code: string; name: string }[];
   return rows.map((r) => ({ value: r.id, label: `${r.client_code} · ${r.name}` }));
 }
 
 export async function getPipelineCounts(): Promise<Record<string, number>> {
-  const statuses = ["Lead", "Contacted", "Proposal Sent", "Won", "Lost"];
+  const statuses = ["Lead", "Contacted", "Proposal Sent", "Closed", "Delivered", "Lost"];
   const res = await Promise.all(
     statuses.map((s) => db().from("clients").select("id", { count: "exact", head: true }).eq("status", s)),
   );

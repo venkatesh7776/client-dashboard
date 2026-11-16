@@ -29,7 +29,7 @@ create table if not exists clients (
   email text,
   source text check (source in ('Referral','LinkedIn','Website','Cold Outreach','Other')),
   status text not null default 'Lead'
-    check (status in ('Lead','Contacted','Proposal Sent','Won','Lost')),
+    check (status in ('Lead','Contacted','Proposal Sent','Closed','Delivered','Lost')),
   expected_value numeric(12,2) check (expected_value >= 0),
   follow_up_date date,
   lost_reason text,
@@ -169,3 +169,9 @@ revoke all on project_files from anon, authenticated;
 insert into storage.buckets (id, name, public, file_size_limit)
 values ('project-files', 'project-files', false, 52428800)
 on conflict (id) do nothing;
+
+-- ───────────────────────── v3 (16 Nov 2026): Won → Closed, new Delivered status
+alter table clients drop constraint if exists clients_status_check;
+update clients set status = 'Closed' where status = 'Won';
+alter table clients add constraint clients_status_check
+  check (status in ('Lead','Contacted','Proposal Sent','Closed','Delivered','Lost'));

@@ -17,7 +17,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ code:
   const [projects, payments, wonOptions, paymentOptions] = await Promise.all([
     getProjects({ clientId: client.id, all: true }),
     getPayments({ clientId: client.id }),
-    getClientOptions("won"),
+    getClientOptions("closed"),
     getClientOptions("notLost"),
   ]);
   const totalReceived = payments.reduce((s, p) => s + Number(p.amount), 0);
@@ -33,7 +33,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ code:
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="tabular text-[13px] text-muted">{client.client_code}</div>
-          <h1 className="mt-0.5 text-[28px] font-bold tracking-tight sm:text-[32px]">{client.name}</h1>
+          <h1 className="mt-0.5 text-[30px] leading-tight font-bold tracking-[-0.02em] sm:text-[36px]">{client.name}</h1>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Pill>{client.status}</Pill>
             {followUp && <Pill tone="orange">Follow up</Pill>}
@@ -48,7 +48,7 @@ export default async function ClientDetail({ params }: { params: Promise<{ code:
         <div className="order-2 space-y-6 lg:order-1">
           <Section title={`Projects · ${projects.length}`}>
             {projects.length === 0 ? (
-              <Empty message={client.status === "Won" ? "No projects yet." : "Projects can be added once this client is Won."} />
+              <Empty message={["Closed", "Delivered"].includes(client.status) ? "No projects yet." : "Projects can be added once this client is Closed."} />
             ) : (
               <Table>
                 <thead>

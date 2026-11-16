@@ -64,11 +64,11 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
         <p className="text-[13px] text-muted">
           {WEEKDAY.format(new Date())}, {fmtDate(today)}
         </p>
-        <h1 className="mt-1 text-[28px] font-bold tracking-tight sm:text-[32px]">Home</h1>
+        <h1 className="mt-1 text-[30px] leading-tight font-bold tracking-[-0.02em] sm:text-[36px]">Home</h1>
       </div>
 
       {/* Revenue — one card, with a period filter */}
-      <div className="mb-6 rounded-lg border border-line p-5">
+      <div className="mb-8 border-b border-line pb-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-[13px] text-muted">Revenue</div>
           <RangeSelect value={range.key} groups={rangeOptions(today)} />
@@ -93,12 +93,12 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
 
       {/* DB-8 Pipeline */}
       <div className="mb-8 flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-[13px] text-muted">Pipeline</span>
+        <span className="mr-2 text-[13px] text-muted">Pipeline</span>
         {CLIENT_STATUSES.map((s) => (
           <Link
             key={s}
             href={`/clients?view=table&status=${encodeURIComponent(s)}`}
-            className="flex items-center gap-2 rounded-md border border-line py-1 pr-2.5 pl-1.5 transition-colors hover:bg-hover"
+            className="flex items-center gap-1.5 rounded-[5px] py-1 pr-2 pl-1 transition-colors hover:bg-hover"
           >
             <Pill>{s}</Pill>
             <span className="tabular text-sm font-medium">{pipeline[s] ?? 0}</span>

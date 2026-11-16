@@ -1,12 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import { AgentPanel } from "@/components/agent/agent-panel";
 import { BottomBar, MobileTopBar, Sidebar } from "@/components/sidebar";
+import { Toaster } from "@/components/toast";
 import "./globals.css";
-
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +24,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en-IN" suppressHydrationWarning>
-      <body className={`${inter.variable} antialiased`}>
+      <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <div className="flex min-h-dvh">
             <Sidebar />
@@ -39,6 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
           <BottomBar />
           <AgentPanel />
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

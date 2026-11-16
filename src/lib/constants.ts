@@ -1,4 +1,6 @@
-export const CLIENT_STATUSES = ["Lead", "Contacted", "Proposal Sent", "Won", "Lost"] as const;
+export const CLIENT_STATUSES = ["Lead", "Contacted", "Proposal Sent", "Closed", "Delivered", "Lost"] as const;
+/** Client statuses that can have projects (deal closed, or work delivered). */
+export const PROJECT_CLIENT_STATUSES = ["Closed", "Delivered"];
 export const LEAD_SOURCES = ["Referral", "LinkedIn", "Website", "Cold Outreach", "Other"] as const;
 export const PROJECT_STATUSES = ["Not Started", "In Progress", "On Hold", "Completed", "Cancelled"] as const;
 export const PRIORITIES = ["High", "Medium", "Low"] as const;
@@ -17,8 +19,9 @@ export const TONE: Record<string, Tone> = {
   // client status
   Lead: "gray",
   Contacted: "blue",
-  "Proposal Sent": "purple",
-  Won: "green",
+  "Proposal Sent": "yellow",
+  Closed: "green",
+  Delivered: "purple",
   Lost: "red",
   // project status
   "Not Started": "gray",

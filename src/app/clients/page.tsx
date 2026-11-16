@@ -24,7 +24,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: SP }
     <>
       <PageHeader
         title="Clients & Leads"
-        description="Every lead and client in one place."
+        description={`${clients.length} ${clients.length === 1 ? "client" : "clients"} · ${clients.filter((c) => ["Lead", "Contacted", "Proposal Sent"].includes(c.status)).length} in the pipeline · ${clients.filter((c) => c.follow_up_date && c.follow_up_date <= today && c.status !== "Lost").length} to follow up`}
         actions={<AddClientButton />}
       />
 

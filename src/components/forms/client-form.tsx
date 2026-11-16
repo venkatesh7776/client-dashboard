@@ -82,7 +82,7 @@ export function ClientForm({
         <Textarea name="notes" defaultValue={client?.notes ?? ""} rows={4} />
       </Field>
 
-      {status === "Won" && client?.status !== "Won" && (
+      {status === "Closed" && client?.status !== "Closed" && client?.status !== "Delivered" && (
         <p className="text-[12.5px] text-muted">A project for this client is created automatically when you save. Add its dates later.</p>
       )}
       <FormError message={formError} />
