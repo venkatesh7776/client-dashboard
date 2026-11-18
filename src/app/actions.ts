@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ensureStartTodos } from "@/lib/auto-todos";
 import { todayIST } from "@/lib/dates";
 import { db } from "@/lib/supabase";
-import { clientSchema, paymentSchema, parseForm, projectSchema, todoSchema, type FieldErrors } from "@/lib/schemas";
+import { budgetSchema, clientSchema, expenseSchema, paymentSchema, parseForm, projectSchema, todoSchema, type FieldErrors } from "@/lib/schemas";
 import { CLIENT_STATUSES, PROJECT_CLIENT_STATUSES, PROJECT_STATUSES } from "@/lib/constants";
 
 export type ActionResult = {
@@ -27,6 +27,7 @@ function refresh() {
 function fail(e: unknown): ActionResult {
   const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Something went wrong";
   if (msg.includes("deadline_after_start")) return { ok: false, errors: { deadline: "Deadline can't be before the start date" } };
+  if (msg.includes("sectors_within_total")) return { ok: false, errors: { total: "The four sectors add up to more than the main budget" } };
   return { ok: false, error: msg };
 }
 
@@ -212,6 +213,41 @@ export async function savePayment(id: string | null, input: unknown): Promise<Ac
 
 export async function deletePayment(id: string): Promise<ActionResult> {
   const { error } = await db().from("payments").delete().eq("id", id);
+  if (error) return fail(error);
+  refresh();
+  return { ok: true };
+}
+
+// ───────────────────────── Budget & expenses
+
+export async function saveBudget(input: unknown): Promise<ActionResult> {
+  const parsed = parseForm(budgetSchema, input);
+  if (!parsed.ok) return { ok: false, errors: parsed.errors };
+  const { error } = await db().from("budgets").upsert(parsed.data, { onConflict: "month" });
+  if (error) return fail(error);
+  refresh();
+  return { ok: true };
+}
+
+/** Starts a month with the same budget and split as an earlier month. */
+export async function copyBudget(fromMonth: string, toMonth: string): Promise<ActionResult> {
+  const { data: src, error: e1 } = await db().from("budgets").select("total, personal, ads, physical, digital").eq("month", fromMonth).single();
+  if (e1 || !src) return { ok: false, error: "That month has no budget to copy" };
+  return saveBudget({ ...src, month: toMonth });
+}
+
+export async function saveExpense(id: string | null, input: unknown): Promise<ActionResult> {
+  const parsed = parseForm(expenseSchema, input);
+  if (!parsed.ok) return { ok: false, errors: parsed.errors };
+  const q = id ? db().from("expenses").update(parsed.data).eq("id", id) : db().from("expenses").insert(parsed.data);
+  const { data: row, error } = await q.select("id").single();
+  if (error) return fail(error);
+  refresh();
+  return { ok: true, id: row.id };
+}
+
+export async function deleteExpense(id: string): Promise<ActionResult> {
+  const { error } = await db().from("expenses").delete().eq("id", id);
   if (error) return fail(error);
   refresh();
   return { ok: true };

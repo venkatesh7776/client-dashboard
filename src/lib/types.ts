@@ -71,3 +71,21 @@ export type ProjectFile = {
   mime: string | null;
   created_at: string;
 };
+
+export type Budget = {
+  month: string;
+  total: number;
+  personal: number;
+  ads: number;
+  physical: number;
+  digital: number;
+};
+
+export type Expense = {
+  id: string;
+  amount: number;
+  category: "personal" | "ads" | "physical" | "digital";
+  purpose: string;
+  spent_on: string;
+  month: string;
+};

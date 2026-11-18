@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "./supabase";
 import { addMonths, monthStart, startOfTodayISTUtc, todayIST } from "./dates";
-import type { Client, MonthRow, Option, Payment, Project, ProjectFile, Todo } from "./types";
+import type { Budget, Client, Expense, MonthRow, Option, Payment, Project, ProjectFile, Todo } from "./types";
 
 const clean = (q?: string) => (q ?? "").replace(/[,()%*\\"]/g, " ").trim();
 
@@ -173,4 +173,41 @@ export async function getProjectFiles(projectId: string) {
   return check(
     await db().from("project_files").select("*").eq("project_id", projectId).order("created_at", { ascending: false }),
   ) as ProjectFile[];
+}
+
+// ───────────────────────── Budget
+
+const toBudget = (r: Record<string, unknown>): Budget => ({
+  month: String(r.month),
+  total: Number(r.total),
+  personal: Number(r.personal),
+  ads: Number(r.ads),
+  physical: Number(r.physical),
+  digital: Number(r.digital),
+});
+
+export async function getBudget(month: string): Promise<Budget | null> {
+  const row = check(await db().from("budgets").select("*").eq("month", month).maybeSingle());
+  return row ? toBudget(row as Record<string, unknown>) : null;
+}
+
+/** The most recent budget set before this month — offered as a one-click copy. */
+export async function getPreviousBudget(month: string): Promise<Budget | null> {
+  const row = check(
+    await db().from("budgets").select("*").lt("month", month).order("month", { ascending: false }).limit(1).maybeSingle(),
+  );
+  return row ? toBudget(row as Record<string, unknown>) : null;
+}
+
+export async function getExpenses(month: string): Promise<Expense[]> {
+  const rows = check(
+    await db()
+      .from("expenses")
+      .select("id, amount, category, purpose, spent_on, month")
+      .eq("month", month)
+      .order("spent_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(2000),
+  ) as Expense[];
+  return rows.map((e) => ({ ...e, amount: Number(e.amount) }));
 }

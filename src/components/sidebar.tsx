@@ -10,6 +10,7 @@ import {
   Moon,
   Sun,
   UsersThree,
+  Wallet,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
 import { Brand } from "@/components/brand";
@@ -25,6 +26,7 @@ const NAV: { href: string; label: string; icon: PhosphorIcon }[] = [
   { href: "/projects", label: "Projects", icon: Kanban },
   { href: "/payments", label: "Payments", icon: CurrencyInr },
   { href: "/todos", label: "To-dos", icon: CheckSquareOffset },
+  { href: "/budget", label: "Budget", icon: Wallet },
 ];
 
 function useActive() {
@@ -125,7 +127,7 @@ export function Sidebar() {
 export function BottomBar() {
   const isActive = useActive();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       {NAV.map(({ href, label, icon: Icon }) => {
         const active = isActive(href);
         return (

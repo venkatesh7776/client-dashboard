@@ -201,3 +201,39 @@ create table if not exists auto_todo_keys (
 );
 alter table auto_todo_keys enable row level security;
 revoke all on auto_todo_keys from anon, authenticated;
+
+-- ───────────────────────── v6 (18 Nov 2026): monthly budget + expenses
+-- One row per month: the main budget and how it is split into four sectors.
+create table if not exists budgets (
+  month date primary key check (extract(day from month) = 1),
+  total numeric(12,2) not null check (total > 0),
+  personal numeric(12,2) not null default 0 check (personal >= 0),
+  ads numeric(12,2) not null default 0 check (ads >= 0),
+  physical numeric(12,2) not null default 0 check (physical >= 0),
+  digital numeric(12,2) not null default 0 check (digital >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint sectors_within_total check (personal + ads + physical + digital <= total)
+);
+
+-- Every spend. "Spent" and "left" are always summed from here, never stored.
+create table if not exists expenses (
+  id uuid primary key default gen_random_uuid(),
+  amount numeric(12,2) not null check (amount > 0),
+  category text not null check (category in ('personal','ads','physical','digital')),
+  purpose text not null check (char_length(btrim(purpose)) between 1 and 200),
+  spent_on date not null default today_ist(),
+  month date generated always as (spent_on - (extract(day from spent_on)::int - 1)) stored,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists expenses_month_idx on expenses(month, spent_on desc);
+
+drop trigger if exists budgets_updated_at on budgets;
+create trigger budgets_updated_at before update on budgets for each row execute function set_updated_at();
+drop trigger if exists expenses_updated_at on expenses;
+create trigger expenses_updated_at before update on expenses for each row execute function set_updated_at();
+
+alter table budgets enable row level security;
+alter table expenses enable row level security;
+revoke all on budgets, expenses from anon, authenticated;

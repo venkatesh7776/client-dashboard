@@ -1,6 +1,6 @@
 // One Zod schema per entity — used by the form (instant feedback) and the server action.
 import { z } from "zod";
-import { CLIENT_STATUSES, LEAD_SOURCES, PAYMENT_MODES, PRIORITIES, PROJECT_STATUSES } from "./constants";
+import { CLIENT_STATUSES, LEAD_SOURCES, PAYMENT_MODES, PRIORITIES, PROJECT_STATUSES, SECTOR_KEYS } from "./constants";
 import { todayIST } from "./dates";
 
 const blankToNull = (v: unknown) => (v === "" || v === undefined ? null : v);
@@ -77,6 +77,41 @@ export const todoSchema = z.object({
   project_id: z.preprocess(blankToNull, z.string().nullable()),
   notes: optText(),
   is_done: z.preprocess((v) => v === true || v === "on" || v === "true", z.boolean()),
+});
+
+/** Rupee amount with up to 2 decimals; commas allowed. `blankAsZero` turns an empty box into 0. */
+const money = (blankAsZero = false) =>
+  z.preprocess(
+    (v) => {
+      const s = typeof v === "string" ? v.replace(/,/g, "").trim() : v;
+      return blankAsZero && (s === "" || s === undefined || s === null) ? "0" : s;
+    },
+    z
+      .union([z.string(), z.number()])
+      .refine((v) => String(v) !== "", "Enter the amount")
+      .refine((v) => String(v) === "" || /^\d+(\.\d{1,2})?$/.test(String(v)), "Enter an amount with up to 2 decimals")
+      .transform(Number),
+  );
+
+export const budgetSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}-01$/, "Pick a month"),
+    total: money().refine((n) => n > 0, "Main budget must be more than 0"),
+    personal: money(true),
+    ads: money(true),
+    physical: money(true),
+    digital: money(true),
+  })
+  .refine((b) => b.personal + b.ads + b.physical + b.digital <= b.total + 0.005, {
+    path: ["total"],
+    message: "The four sectors add up to more than the main budget",
+  });
+
+export const expenseSchema = z.object({
+  amount: money().refine((n) => n > 0, "Amount must be more than 0"),
+  category: z.enum(SECTOR_KEYS, { error: "Pick a sector" }),
+  purpose: z.string().trim().min(1, "What was it for?").max(200, "Keep it under 200 characters"),
+  spent_on: isoDate.refine((d) => d <= todayIST(), "Date can't be in the future"),
 });
 
 export type FieldErrors = Record<string, string | undefined>;

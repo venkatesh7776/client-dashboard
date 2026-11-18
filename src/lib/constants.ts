@@ -41,3 +41,13 @@ export const TONE: Record<string, Tone> = {
   // misc
   "Follow up": "orange",
 };
+
+/** Budget sectors, in fixed order. Colours are categorical slots 1–4 (validated colour-blind-safe set). */
+export const SECTOR_KEYS = ["personal", "ads", "physical", "digital"] as const;
+export type SectorKey = (typeof SECTOR_KEYS)[number];
+export const SECTORS: { key: SectorKey; label: string; color: string }[] = [
+  { key: "personal", label: "Personal", color: "var(--series-1)" },
+  { key: "ads", label: "Ads", color: "var(--series-2)" },
+  { key: "physical", label: "Physical tools", color: "var(--series-3)" },
+  { key: "digital", label: "Digital tools", color: "var(--series-4)" },
+];
