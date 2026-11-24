@@ -89,3 +89,18 @@ export type Expense = {
   spent_on: string;
   month: string;
 };
+
+export type Content = {
+  id: string;
+  content_code: string;
+  title: string;
+  status: string;
+  platform: string;
+  pillar: string | null;
+  script: string | null;
+  notes: string | null;
+  caption: string | null;
+  planned_date: string | null;
+  created_at: string;
+  updated_at: string;
+};

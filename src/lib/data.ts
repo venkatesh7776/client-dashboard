@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "./supabase";
 import { addMonths, monthStart, startOfTodayISTUtc, todayIST } from "./dates";
-import type { Budget, Client, Expense, MonthRow, Option, Payment, Project, ProjectFile, Todo } from "./types";
+import type { Budget, Client, Content, Expense, MonthRow, Option, Payment, Project, ProjectFile, Todo } from "./types";
 
 const clean = (q?: string) => (q ?? "").replace(/[,()%*\\"]/g, " ").trim();
 
@@ -210,4 +210,26 @@ export async function getExpenses(month: string): Promise<Expense[]> {
       .limit(2000),
   ) as Expense[];
   return rows.map((e) => ({ ...e, amount: Number(e.amount) }));
+}
+
+// ───────────────────────── Content
+
+export async function getContent(f: { q?: string; status?: string; pillar?: string; platform?: string } = {}) {
+  let q = db().from("content").select("*").order("updated_at", { ascending: false }).limit(2000);
+  const term = clean(f.q);
+  if (term) q = q.or(`title.ilike.%${term}%,script.ilike.%${term}%,content_code.ilike.%${term}%,pillar.ilike.%${term}%`);
+  if (f.status) q = q.eq("status", f.status);
+  if (f.pillar) q = q.eq("pillar", f.pillar);
+  if (f.platform) q = q.eq("platform", f.platform);
+  return check(await q) as Content[];
+}
+
+export async function getContentByCode(code: string) {
+  return check(await db().from("content").select("*").eq("content_code", code).maybeSingle()) as Content | null;
+}
+
+/** Pillars used so far — offered as suggestions so the list grows with use. */
+export async function getContentPillars(): Promise<string[]> {
+  const rows = check(await db().from("content").select("pillar").not("pillar", "is", null).limit(5000)) as { pillar: string }[];
+  return [...new Set(rows.map((r) => r.pillar.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }

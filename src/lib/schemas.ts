@@ -1,6 +1,6 @@
 // One Zod schema per entity — used by the form (instant feedback) and the server action.
 import { z } from "zod";
-import { CLIENT_STATUSES, LEAD_SOURCES, PAYMENT_MODES, PRIORITIES, PROJECT_STATUSES, SECTOR_KEYS } from "./constants";
+import { CLIENT_STATUSES, LEAD_SOURCES, PAYMENT_MODES, PRIORITIES, PROJECT_STATUSES, SECTOR_KEYS, CONTENT_PLATFORMS, CONTENT_STATUSES } from "./constants";
 import { todayIST } from "./dates";
 
 const blankToNull = (v: unknown) => (v === "" || v === undefined ? null : v);
@@ -113,6 +113,19 @@ export const expenseSchema = z.object({
   purpose: z.string().trim().min(1, "What was it for?").max(200, "Keep it under 200 characters"),
   spent_on: isoDate.refine((d) => d <= todayIST(), "Date can't be in the future"),
 });
+
+/** Every content field; the editor autosaves one or a few at a time, so updates use .partial(). */
+export const contentSchema = z.object({
+  title: z.string().trim().min(1, "Give it a title or hook").max(200, "Keep it under 200 characters"),
+  status: z.enum(CONTENT_STATUSES),
+  platform: z.enum(CONTENT_PLATFORMS),
+  pillar: optText(60),
+  script: optText(50000),
+  notes: optText(50000),
+  caption: optText(5000),
+  planned_date: optDate,
+});
+export const contentPatchSchema = contentSchema.partial();
 
 export type FieldErrors = Record<string, string | undefined>;
 

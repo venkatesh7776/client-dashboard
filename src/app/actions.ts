@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { ensureStartTodos } from "@/lib/auto-todos";
 import { todayIST } from "@/lib/dates";
 import { db } from "@/lib/supabase";
-import { budgetSchema, clientSchema, expenseSchema, paymentSchema, parseForm, projectSchema, todoSchema, type FieldErrors } from "@/lib/schemas";
-import { CLIENT_STATUSES, PROJECT_CLIENT_STATUSES, PROJECT_STATUSES } from "@/lib/constants";
+import { budgetSchema, clientSchema, contentPatchSchema, contentSchema, expenseSchema, paymentSchema, parseForm, projectSchema, todoSchema, type FieldErrors } from "@/lib/schemas";
+import { CLIENT_STATUSES, CONTENT_STATUSES, PROJECT_CLIENT_STATUSES, PROJECT_STATUSES } from "@/lib/constants";
 
 export type ActionResult = {
   ok: boolean;
@@ -248,6 +248,51 @@ export async function saveExpense(id: string | null, input: unknown): Promise<Ac
 
 export async function deleteExpense(id: string): Promise<ActionResult> {
   const { error } = await db().from("expenses").delete().eq("id", id);
+  if (error) return fail(error);
+  refresh();
+  return { ok: true };
+}
+
+// ───────────────────────── Content
+
+/** One-line capture: a new Idea with just a title. */
+export async function quickAddContent(title: string, status: string = "Idea"): Promise<ActionResult> {
+  const parsed = parseForm(contentSchema.pick({ title: true, status: true }), { title, status });
+  if (!parsed.ok) return { ok: false, errors: parsed.errors };
+  const { data: row, error } = await db()
+    .from("content")
+    .insert(parsed.data)
+    .select("id, content_code")
+    .single();
+  if (error) return fail(error);
+  refresh();
+  return { ok: true, id: row.id, code: row.content_code };
+}
+
+/**
+ * Saves the fields that changed. Called by the editor's autosave, so it does not
+ * revalidate the page (the editor already shows what was typed); lists refetch on navigation.
+ */
+export async function updateContent(id: string, patch: unknown, opts: { revalidate?: boolean } = {}): Promise<ActionResult> {
+  const parsed = parseForm(contentPatchSchema, patch);
+  if (!parsed.ok) return { ok: false, errors: parsed.errors };
+  try {
+    const { error } = await db().from("content").update(parsed.data).eq("id", id);
+    if (error) throw error;
+    if (opts.revalidate) refresh();
+    return { ok: true, id };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function setContentStatus(id: string, status: string): Promise<ActionResult> {
+  if (!(CONTENT_STATUSES as readonly string[]).includes(status)) return { ok: false, error: "Unknown status" };
+  return updateContent(id, { status }, { revalidate: true });
+}
+
+export async function deleteContent(id: string): Promise<ActionResult> {
+  const { error } = await db().from("content").delete().eq("id", id);
   if (error) return fail(error);
   refresh();
   return { ok: true };

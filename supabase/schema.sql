@@ -237,3 +237,37 @@ create trigger expenses_updated_at before update on expenses for each row execut
 alter table budgets enable row level security;
 alter table expenses enable row level security;
 revoke all on budgets, expenses from anon, authenticated;
+
+-- ───────────────────────── v7 (24 Nov 2026): content system (reel ideas → scripts → posted)
+create sequence if not exists content_code_seq;
+create table if not exists content (
+  id uuid primary key default gen_random_uuid(),
+  content_code text not null unique default pad_code('CT-', nextval('content_code_seq')),
+  title text not null check (char_length(btrim(title)) between 1 and 200),
+  status text not null default 'Idea'
+    check (status in ('Idea','Scripting','Ready to shoot','Editing','Posted')),
+  platform text not null default 'Instagram'
+    check (platform in ('Instagram','YouTube Shorts','LinkedIn','Other')),
+  pillar text check (char_length(pillar) <= 60),
+  script text,
+  notes text,
+  caption text,
+  planned_date date,
+  posted_on date,
+  posted_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists content_status_idx on content(status, updated_at desc);
+drop trigger if exists content_updated_at on content;
+create trigger content_updated_at before update on content for each row execute function set_updated_at();
+alter table content enable row level security;
+revoke all on content from anon, authenticated;
+
+-- ───────────────────────── v8 (24 Nov 2026): content pipeline is Idea → Scripting → Ready to shoot
+update content set status = 'Ready to shoot' where status in ('Editing','Posted');
+alter table content drop constraint if exists content_status_check;
+alter table content add constraint content_status_check
+  check (status in ('Idea','Scripting','Ready to shoot'));
+alter table content drop column if exists posted_on;
+alter table content drop column if exists posted_url;

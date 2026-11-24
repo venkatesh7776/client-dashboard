@@ -38,6 +38,10 @@ export const TONE: Record<string, Tone> = {
   High: "red",
   Medium: "yellow",
   Low: "gray",
+  // content
+  Idea: "gray",
+  Scripting: "blue",
+  "Ready to shoot": "yellow",
   // misc
   "Follow up": "orange",
 };
@@ -51,3 +55,8 @@ export const SECTORS: { key: SectorKey; label: string; color: string }[] = [
   { key: "physical", label: "Physical tools", color: "var(--series-3)" },
   { key: "digital", label: "Digital tools", color: "var(--series-4)" },
 ];
+
+/** Content pipeline: a reel moves left → right. */
+export const CONTENT_STATUSES = ["Idea", "Scripting", "Ready to shoot"] as const;
+export const CONTENT_PLATFORMS = ["Instagram", "YouTube Shorts", "LinkedIn", "Other"] as const;
+export type ContentStatus = (typeof CONTENT_STATUSES)[number];

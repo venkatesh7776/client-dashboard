@@ -5,6 +5,7 @@ import {
   CaretRight,
   CheckSquareOffset,
   CurrencyInr,
+  FilmSlate,
   House,
   Kanban,
   Moon,
@@ -27,6 +28,7 @@ const NAV: { href: string; label: string; icon: PhosphorIcon }[] = [
   { href: "/payments", label: "Payments", icon: CurrencyInr },
   { href: "/todos", label: "To-dos", icon: CheckSquareOffset },
   { href: "/budget", label: "Budget", icon: Wallet },
+  { href: "/content", label: "Content", icon: FilmSlate },
 ];
 
 function useActive() {
@@ -127,7 +129,7 @@ export function Sidebar() {
 export function BottomBar() {
   const isActive = useActive();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-7 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       {NAV.map(({ href, label, icon: Icon }) => {
         const active = isActive(href);
         return (
